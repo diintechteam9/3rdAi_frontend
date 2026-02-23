@@ -57,70 +57,93 @@ export default {
                     />
                   </div>
                 )}
-                
-                <div style={{ 
-                  background: '#f8f9fa', 
-                  padding: '20px', 
-                  borderRadius: '8px', 
-                  marginBottom: '20px' 
+
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
                 }}>
                   <h3 style={{ marginBottom: '15px', color: '#333' }}>Basic Information</h3>
+
+                  {/* Name */}
+                  {(user.value.profile?.name || user.value.name) && (
+                    <div class="mb-3">
+                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Name:</strong>
+                      <span style={{ color: '#333', fontSize: '17px', fontWeight: '600' }}>
+                        {user.value.profile?.name || user.value.name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Email */}
                   <div class="mb-3">
                     <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Email:</strong>
                     <span style={{ color: '#333' }}>{user.value.email}</span>
                     {user.value.emailVerified && (
-                      <span style={{ 
-                        marginLeft: '10px', 
-                        color: '#28a745', 
+                      <span style={{
+                        marginLeft: '10px',
+                        color: '#28a745',
                         fontSize: '12px',
                         fontWeight: 'bold'
                       }}>✓ Verified</span>
                     )}
                   </div>
+
+                  {/* Mobile */}
                   {user.value.mobile && (
                     <div class="mb-3">
                       <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Mobile:</strong>
                       <span style={{ color: '#333' }}>{user.value.mobile}</span>
                       {user.value.mobileVerified && (
-                        <span style={{ 
-                          marginLeft: '10px', 
-                          color: '#28a745', 
+                        <span style={{
+                          marginLeft: '10px',
+                          color: '#28a745',
                           fontSize: '12px',
                           fontWeight: 'bold'
                         }}>✓ Verified</span>
                       )}
                     </div>
                   )}
-                  {user.value.profile && user.value.profile.name && (
+
+                  {/* Police Station */}
+                  {user.value.profile?.policeStation && (
                     <div class="mb-3">
-                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Full Name:</strong>
-                      <span style={{ color: '#333' }}>{user.value.profile.name}</span>
+                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Police Station:</strong>
+                      <span style={{ color: '#333' }}>{user.value.profile.policeStation}</span>
                     </div>
                   )}
-                  {user.value.name && !user.value.profile?.name && (
+
+                  {/* Service ID */}
+                  {user.value.profile?.serviceId && (
                     <div class="mb-3">
-                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Name:</strong>
-                      <span style={{ color: '#333' }}>{user.value.name}</span>
+                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Service ID:</strong>
+                      <span style={{
+                        color: '#007bff',
+                        fontWeight: '600',
+                        fontFamily: 'monospace',
+                        fontSize: '15px'
+                      }}>{user.value.profile.serviceId}</span>
                     </div>
                   )}
                 </div>
 
                 {user.value.profile && (
-                  <div style={{ 
-                    background: '#f8f9fa', 
-                    padding: '20px', 
-                    borderRadius: '8px', 
-                    marginBottom: '20px' 
+                  <div style={{
+                    background: '#f8f9fa',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    marginBottom: '20px'
                   }}>
                     <h3 style={{ marginBottom: '15px', color: '#333' }}>Profile Details</h3>
                     {user.value.profile.dob && (
                       <div class="mb-3">
                         <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Date of Birth:</strong>
                         <span style={{ color: '#333' }}>
-                          {new Date(user.value.profile.dob).toLocaleDateString('en-US', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
+                          {new Date(user.value.profile.dob).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                           })}
                         </span>
                       </div>
@@ -146,7 +169,7 @@ export default {
                     {user.value.profile.profession && (
                       <div class="mb-3">
                         <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Profession:</strong>
-                        <span style={{ 
+                        <span style={{
                           color: '#333',
                           textTransform: 'capitalize'
                         }}>{user.value.profile.profession.replace(/([A-Z])/g, ' $1').trim()}</span>
@@ -155,16 +178,16 @@ export default {
                   </div>
                 )}
 
-                <div style={{ 
-                  background: '#f8f9fa', 
-                  padding: '20px', 
-                  borderRadius: '8px', 
-                  marginBottom: '20px' 
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
                 }}>
                   <h3 style={{ marginBottom: '15px', color: '#333' }}>Account Information</h3>
                   <div class="mb-3">
                     <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Role:</strong>
-                    <span style={{ 
+                    <span style={{
                       color: '#333',
                       textTransform: 'capitalize'
                     }}>{user.value.role || 'user'}</span>
@@ -188,7 +211,7 @@ export default {
                   {user.value.isActive !== undefined && (
                     <div class="mb-3">
                       <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Account Status:</strong>
-                      <span style={{ 
+                      <span style={{
                         color: user.value.isActive ? '#28a745' : '#dc3545',
                         fontWeight: 'bold'
                       }}>
@@ -200,8 +223,8 @@ export default {
                     <div class="mb-3">
                       <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Associated Client:</strong>
                       <span style={{ color: '#333' }}>
-                        {typeof user.value.clientId === 'object' && user.value.clientId.businessName 
-                          ? user.value.clientId.businessName 
+                        {typeof user.value.clientId === 'object' && user.value.clientId.businessName
+                          ? user.value.clientId.businessName
                           : user.value.clientId.email || 'N/A'}
                       </span>
                     </div>
@@ -210,10 +233,10 @@ export default {
                     <div class="mb-3">
                       <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Member Since:</strong>
                       <span style={{ color: '#333' }}>
-                        {new Date(user.value.createdAt).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
+                        {new Date(user.value.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
                         })}
                       </span>
                     </div>
@@ -221,7 +244,7 @@ export default {
                   {user.value.authMethod && (
                     <div class="mb-3">
                       <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Authentication Method:</strong>
-                      <span style={{ 
+                      <span style={{
                         color: '#333',
                         textTransform: 'capitalize'
                       }}>{user.value.authMethod}</span>

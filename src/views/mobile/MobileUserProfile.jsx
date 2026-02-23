@@ -1,6 +1,7 @@
 import { ref, onMounted } from 'vue';
 import { useAuth } from '../../store/auth.js';
 import { useRouter } from 'vue-router';
+import { UserIcon } from '@heroicons/vue/24/outline';
 export default {
   name: 'MobileUserProfile',
   setup() {
@@ -41,11 +42,17 @@ export default {
 
           {!loading.value && !error.value && user.value && (
             <div class="content">
-              {imageUrl && (
-                <div class="profile-image">
-                  <img src={imageUrl} alt="Profile" />
-                </div>
-              )}
+              <div class="profile-image-container">
+                {imageUrl ? (
+                  <div class="profile-image">
+                    <img src={imageUrl} alt="Profile" />
+                  </div>
+                ) : (
+                  <div class="profile-placeholder">
+                    <UserIcon style={{ width: '3rem', height: '3rem', color: '#64748b' }} />
+                  </div>
+                )}
+              </div>
 
               <div class="section">
                 <h3>Basic Info</h3>
@@ -160,9 +167,26 @@ export default {
               max-width: 100%;
             }
             
+            .profile-image-container {
+              display: flex;
+              justify-content: center;
+              margin-bottom: 2rem;
+            }
+            
+            .profile-placeholder {
+              width: 100px;
+              height: 100px;
+              border-radius: 50%;
+              background: #f1f5f9;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 3px solid white;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
+
             .profile-image {
               text-align: center;
-              margin-bottom: 2rem;
             }
             
             .profile-image img {

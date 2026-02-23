@@ -8,6 +8,9 @@ export default {
     const router = useRouter();
     const toast = useToast();
 
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+    const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
     const loading = ref(false);
     const loginForm = ref({
       email: '',
@@ -22,7 +25,7 @@ export default {
 
       loading.value = true;
       try {
-        const response = await fetch('https://stage.brahmakosh.com/api/partners/login', {
+        const response = await fetch(`${API_BASE_URL}/partners/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(loginForm.value)
@@ -49,7 +52,7 @@ export default {
     const handleGoogleLogin = async (response) => {
       loading.value = true;
       try {
-        const res = await fetch('https://stage.brahmakosh.com/api/partners/google-login', {
+        const res = await fetch(`${API_BASE_URL}/partners/google-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ credential: response.credential })
@@ -76,8 +79,9 @@ export default {
     onMounted(() => {
       if (window.google) {
         window.google.accounts.id.initialize({
-          client_id: '449350149768-a1a1qn8siakh4hq7tejj60ri81c6hh85.apps.googleusercontent.com',
-          callback: handleGoogleLogin
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleLogin,
+          ux_mode: 'popup'
         });
 
         window.google.accounts.id.renderButton(
@@ -96,7 +100,7 @@ export default {
       <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
         <div class="container">
           <div class="row justify-content-center">
-            
+
             {/* ✅ Width increased here */}
             <div class="col-md-8 col-lg-6 col-xl-5">
 
@@ -106,7 +110,10 @@ export default {
                 <div class="card-body p-4 p-md-5">
 
                   <div class="text-center mb-4">
-                    <h3 class="fw-bold mb-1">Partner Login</h3>
+                    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                      <img src="/logo.png" alt="3rdAI Logo" style={{ width: '120px', height: '120px', borderRadius: '20px', objectFit: 'contain' }} />
+                    </div>
+                    <h3 class="fw-bold mb-1">3rdAI Partner Login</h3>
                     <p class="text-muted mb-0" style={{ fontSize: '0.95rem' }}>
                       Sign in to continue
                     </p>

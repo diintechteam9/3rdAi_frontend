@@ -1,6 +1,6 @@
 import api from './api.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://stage.brahmakosh.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 const brandAssetService = {
   // Get all brand assets for authenticated client
@@ -196,13 +196,13 @@ const brandAssetService = {
           method: 'GET',
           timeout: 5000
         });
-        
+
         const presignedUrl = response.data?.presignedUrl;
         if (presignedUrl && presignedUrl.startsWith('http')) {
           return presignedUrl;
         }
       }
-      
+
       // Fallback: Extract key from URL if no key provided
       if (!imageUrl || !imageUrl.includes('amazonaws.com')) {
         return imageUrl;
@@ -217,12 +217,12 @@ const brandAssetService = {
         method: 'GET',
         timeout: 5000
       });
-      
+
       const presignedUrl = response.data?.presignedUrl;
       if (presignedUrl && presignedUrl.startsWith('http')) {
         return presignedUrl;
       }
-      
+
       // Return null to use placeholder instead of broken URL
       return null;
     } catch (error) {

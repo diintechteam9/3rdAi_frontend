@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://stage.brahmakosh.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 // Helper function to get client token
 const getClientToken = () => {
@@ -82,7 +82,7 @@ const sponsorService = {
     try {
       const formData = new FormData();
       formData.append('logo', logoFile);
-      
+
       const response = await axios.post(`${API_BASE_URL}/sponsors/${sponsorId}/upload-logo`, formData, {
         headers: getAuthHeaders()
         // Don't set Content-Type for FormData - browser sets it automatically with boundary
@@ -101,29 +101,29 @@ const sponsorService = {
   // Get presigned URL for S3 logo with retry logic
   async getPresignedLogoUrl(logoUrl) {
     if (!logoUrl) return null;
-    
+
     // Skip presigned URL for localhost/local URLs
     if (logoUrl.includes('localhost') || logoUrl.includes('127.0.0.1') || logoUrl.startsWith('/uploads/')) {
       return logoUrl; // Return as-is for local URLs
     }
-    
+
     // Check if it's an S3 URL
     const isS3Url = logoUrl.includes('s3.amazonaws.com') || logoUrl.includes('amazonaws.com');
     if (!isS3Url) {
       return logoUrl; // Return as-is for non-S3 URLs
     }
-    
+
     try {
       // Extract key from S3 URL
       const url = new URL(logoUrl);
       const key = url.pathname.substring(1); // Remove leading slash
-      
+
       // Get presigned URL from backend with timeout
       const response = await axios.get(`${API_BASE_URL}/upload/presigned-url/${encodeURIComponent(key)}`, {
         headers: getAuthHeaders(),
         timeout: 5000 // 5 second timeout
       });
-      
+
       if (response.data.success && response.data.data.presignedUrl) {
         const presignedUrl = response.data.data.presignedUrl;
         // Validate the presigned URL
@@ -136,7 +136,7 @@ const sponsorService = {
       // Return null to use placeholder logo instead of broken URL
       return null;
     }
-    
+
     // Return null to use placeholder instead of potentially broken URL
     return null;
   }

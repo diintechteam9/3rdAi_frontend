@@ -207,7 +207,11 @@ const routes = [
         name: 'MobileNotifications',
         component: () => import('../views/mobile/MobileNotifications.jsx')
       },
-
+      {
+        path: 'cctv-surveillance',
+        name: 'MobileCCTVSurveillance',
+        component: () => import('../views/shared/CCTVSurveillance.jsx')
+      },
     ]
   },
 
@@ -232,6 +236,11 @@ const routes = [
         path: 'admins',
         name: 'SuperAdminAdmins',
         component: () => import('../views/super-admin/Admins.jsx')
+      },
+      {
+        path: 'clients',
+        name: 'SuperAdminClients',
+        component: () => import('../views/admin/Clients.jsx') // Reusing the same AdminClients view
       },
       {
         path: 'pending-approvals',
@@ -368,6 +377,11 @@ const routes = [
         path: 'ai-agents',
         name: 'ClientAIAgents',
         component: () => import('../views/client/AIAgents.jsx')
+      },
+      {
+        path: 'cctv-surveillance',
+        name: 'ClientCCTVSurveillance',
+        component: () => import('../views/shared/CCTVSurveillance.jsx')
       },
 
       {

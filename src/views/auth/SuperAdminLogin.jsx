@@ -17,7 +17,7 @@ export default {
       e.preventDefault();
       loading.value = true;
       error.value = '';
-      
+
       try {
         const response = await api.superAdminLogin(email.value, password.value);
         await login(email.value, password.value, 'super_admin');
@@ -32,7 +32,10 @@ export default {
     return () => (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '3rem', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)' }}>
-          <h1 style={{ textAlign: 'center', marginBottom: '2rem', color: '#1f2937', fontSize: '2rem' }}>Super Admin Login</h1>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <img src="/logo.png" alt="3rdAI Logo" style={{ width: '120px', height: '120px', borderRadius: '20px', objectFit: 'contain' }} />
+          </div>
+          <h1 style={{ textAlign: 'center', marginBottom: '2rem', color: '#1f2937', fontSize: '2rem', fontWeight: 'bold' }}>3rdAI Super Admin Login</h1>
           {error.value && <div class="alert alert-danger">{error.value}</div>}
           <form onSubmit={handleLogin}>
             <div class="mb-3">

@@ -37,7 +37,7 @@ export default {
 
       console.log('🔌 Connecting to WebSocket...');
 
-      socket.value = io(import.meta.env.VITE_WS_URL || 'https://stage.brahmakosh.com', {
+      socket.value = io(import.meta.env.VITE_WS_URL || 'http://localhost:4000', {
         path: '/socket.io/',
         auth: { token },
         transports: ['polling', 'websocket'],
@@ -558,8 +558,8 @@ export default {
                       key={conv.conversationId}
                       onClick={() => selectConversation(conv)}
                       style={`padding: 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; ${selectedConversation.value?.conversationId === conv.conversationId
-                          ? 'background-color: #eef2ff;'
-                          : ''
+                        ? 'background-color: #eef2ff;'
+                        : ''
                         }`}
                     >
                       <div style="display: flex; align-items: center; gap: 12px;">
@@ -683,8 +683,8 @@ export default {
 
                             <div style={`display: flex; ${isUserMessage ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}`}>
                               <div style={`max-width: 70%; padding: 12px 16px; border-radius: 16px; ${isUserMessage
-                                  ? 'background-color: #6366f1; color: white; border-bottom-right-radius: 4px;'
-                                  : 'background-color: white; color: #111827; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);'
+                                ? 'background-color: #6366f1; color: white; border-bottom-right-radius: 4px;'
+                                : 'background-color: white; color: #111827; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);'
                                 }`}>
                                 <p style="margin: 0; word-wrap: break-word;">{message.content}</p>
                                 <div style={`display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11px; ${isUserMessage ? 'color: rgba(255,255,255,0.7); justify-content: flex-end;' : 'color: #9ca3af;'

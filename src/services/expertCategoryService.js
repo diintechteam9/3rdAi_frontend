@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://stage.brahmakosh.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 class ExpertCategoryService {
   constructor() {
@@ -17,7 +17,7 @@ class ExpertCategoryService {
       const clientToken = localStorage.getItem('token_client');
       const userToken = localStorage.getItem('token_user');
       const token = clientToken || userToken;
-      
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -32,7 +32,7 @@ class ExpertCategoryService {
       const userToken = localStorage.getItem('token_user');
       const token = clientToken || userToken;
       console.log('Token check:', { hasToken: !!token, tokenLength: token?.length, tokenType: clientToken ? 'client' : 'user' });
-      
+
       const response = await this.api.post('/', categoryData);
       return response.data;
     } catch (error) {
@@ -48,7 +48,7 @@ class ExpertCategoryService {
       const userToken = localStorage.getItem('token_user');
       const token = clientToken || userToken;
       console.log('Token check:', { hasToken: !!token, tokenLength: token?.length, tokenType: clientToken ? 'client' : 'user' });
-      
+
       const response = await this.api.get('/');
       return response.data;
     } catch (error) {

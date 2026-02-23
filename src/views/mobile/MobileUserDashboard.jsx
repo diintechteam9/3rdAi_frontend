@@ -7,7 +7,8 @@ import {
   UserIcon,
   FilmIcon,
   ArrowRightIcon,
-  SparklesIcon
+  SparklesIcon,
+  VideoCameraIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -40,6 +41,14 @@ export default {
         description: 'View and manage your profile information',
         route: '/mobile/user/profile',
         color: '#3b82f6'
+      },
+      {
+        id: 6,
+        name: 'CCTV Surveillance',
+        icon: VideoCameraIcon,
+        description: 'View live CCTV coverage and Delhi zone monitoring map',
+        route: '/mobile/user/cctv-surveillance',
+        color: '#ef4444'
       }
     ];
 
@@ -53,6 +62,19 @@ export default {
       <div class="mobile-dashboard">
         {/* Header */}
         <div class="dashboard-header">
+          <div class="profile-section">
+            {user.value?.profileImageUrl ? (
+              <img
+                src={user.value.profileImageUrl}
+                alt="Profile"
+                class="profile-image"
+              />
+            ) : (
+              <div class="profile-placeholder">
+                <UserIcon style={{ width: '2rem', height: '2rem', color: '#64748b' }} />
+              </div>
+            )}
+          </div>
           <p>Welcome to <strong>{clientName}</strong> AI Services</p>
           {clientIdDisplay && <p class="client-id">Client ID: {clientIdDisplay}</p>}
           <p class="subtitle">Access your AI-powered tools and features</p>
@@ -91,6 +113,33 @@ export default {
             display: inline-block;
             padding: 0.1rem 0.5rem;
             border-radius: 4px;
+          }
+
+          .profile-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+          }
+
+          .profile-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          }
+
+          .profile-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
           }
           
           .tools-grid {

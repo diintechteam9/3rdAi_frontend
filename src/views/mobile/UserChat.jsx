@@ -59,7 +59,7 @@ export default {
         socket.value.disconnect();
       }
 
-      socket.value = io(import.meta.env.VITE_WS_URL || 'https://stage.brahmakosh.com', {
+      socket.value = io(import.meta.env.VITE_WS_URL || 'http://localhost:4000', {
         path: '/socket.io/',
         auth: {
           token: token  // Send token in auth object
@@ -793,8 +793,8 @@ export default {
               <button
                 onClick={() => { showPartnersList.value = true; }}
                 style={`flex: 1; padding: 6px 10px; border-radius: 9999px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; ${showPartnersList.value
-                    ? 'background-color: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
-                    : 'background-color: transparent; color: #6b7280;'
+                  ? 'background-color: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
+                  : 'background-color: transparent; color: #6b7280;'
                   }`}
               >
                 Partners
@@ -802,8 +802,8 @@ export default {
               <button
                 onClick={() => { showPartnersList.value = false; showPartnerDetails.value = false; }}
                 style={`flex: 1; padding: 6px 10px; border-radius: 9999px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; ${!showPartnersList.value
-                    ? 'background-color: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
-                    : 'background-color: transparent; color: #6b7280;'
+                  ? 'background-color: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08);'
+                  : 'background-color: transparent; color: #6b7280;'
                   }`}
               >
                 Conversations
@@ -850,8 +850,8 @@ export default {
                               {partner.name || partner.email}
                             </p>
                             <span style={`font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; ${partner.status === 'online' && !partner.isBusy
-                                ? 'background-color: #d1fae5; color: #065f46;'
-                                : 'background-color: #fef3c7; color: #92400e;'
+                              ? 'background-color: #d1fae5; color: #065f46;'
+                              : 'background-color: #fef3c7; color: #92400e;'
                               }`}>
                               {getStatusText(partner)}
                             </span>
@@ -920,8 +920,8 @@ export default {
                           key={conv.conversationId}
                           onClick={() => selectConversation(conv)}
                           style={`padding: 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background-color 0.2s; ${selectedConversation.value?.conversationId === conv.conversationId
-                              ? 'background-color: #eef2ff;'
-                              : ''
+                            ? 'background-color: #eef2ff;'
+                            : ''
                             }`}
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                           onMouseLeave={(e) => {
@@ -1090,8 +1090,8 @@ export default {
 
                             <div style={`display: flex; ${isUserMessage ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}`}>
                               <div style={`max-width: 70%; padding: 12px 16px; border-radius: 16px; ${isUserMessage
-                                  ? 'background-color: #6366f1; color: white; border-bottom-right-radius: 4px;'
-                                  : 'background-color: white; color: #111827; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);'
+                                ? 'background-color: #6366f1; color: white; border-bottom-right-radius: 4px;'
+                                : 'background-color: white; color: #111827; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);'
                                 }`}>
                                 <p style="margin: 0; word-wrap: break-word;">{message.content}</p>
                                 <div style={`display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11px; ${isUserMessage ? 'color: rgba(255,255,255,0.7); justify-content: flex-end;' : 'color: #9ca3af;'

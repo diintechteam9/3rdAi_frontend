@@ -8,7 +8,7 @@ export default {
     const router = useRouter();
     const toast = useToast();
 
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://stage.brahmakosh.com/api';
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
     const loading = ref(false);
     const registerForm = ref({
@@ -16,13 +16,14 @@ export default {
       email: '',
       password: '',
       phone: '',
-      specialization: ''
+      specialization: '',
+      clientId: ''
     });
     const profileImageFile = ref(null);
 
     const register = async () => {
-      if (!registerForm.value.name || !registerForm.value.email || !registerForm.value.password) {
-        toast.error('Please fill all required fields');
+      if (!registerForm.value.name || !registerForm.value.email || !registerForm.value.password || !registerForm.value.clientId) {
+        toast.error('Please fill all required fields (Name, Email, Password, Client ID)');
         return;
       }
 
@@ -87,7 +88,10 @@ export default {
 
                   {/* Header */}
                   <div class="text-center mb-4">
-                    <h3 class="fw-bold mb-1">Partner Registration</h3>
+                    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                      <img src="/logo.png" alt="3rdAI Logo" style={{ width: '120px', height: '120px', borderRadius: '20px', objectFit: 'contain' }} />
+                    </div>
+                    <h3 class="fw-bold mb-1">3rdAI Partner Registration</h3>
                     <p class="text-muted mb-0" style={{ fontSize: '0.95rem' }}>
                       Create your account to continue
                     </p>
@@ -128,6 +132,18 @@ export default {
                         placeholder="Create a strong password"
                         value={registerForm.value.password}
                         onInput={(e) => (registerForm.value.password = e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Client ID *</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-lg rounded-3"
+                        placeholder="Enter Client ID (e.g. CLI-123456)"
+                        value={registerForm.value.clientId}
+                        onInput={(e) => (registerForm.value.clientId = e.target.value)}
                         required
                       />
                     </div>

@@ -71,7 +71,7 @@ class ApiService {
     if (!token) {
       // PUBLIC ENDPOINTS - No token required
       const publicEndpoints = [
-
+        '/public/',
         '/mobile/user/register/',
         '/mobile/user/check-email',
         '/mobile/user/search-location',
@@ -107,8 +107,9 @@ class ApiService {
         token = getTokenForRole('super_admin');
         tokenSource = 'super_admin (endpoint match)';
       } else if (endpoint.includes('/admin/') || endpoint.includes('/auth/admin/')) {
-        token = getTokenForRole('admin');
-        tokenSource = 'admin (endpoint match)';
+        // Since Super Admin can access Admin routes, try Super Admin token first
+        token = getTokenForRole('super_admin') || getTokenForRole('admin');
+        tokenSource = token === getTokenForRole('super_admin') ? 'super_admin (via admin endpoint)' : 'admin (endpoint match)';
       } else if (endpoint.includes('/client/') || endpoint.includes('/auth/client/') ||
         endpoint.includes('/testimonials') || endpoint.includes('/founder-messages') ||
         endpoint.includes('/brand-assets') ||
@@ -318,10 +319,10 @@ class ApiService {
     });
   }
 
-  async partnerRegister(name, email, password, specialization) {
+  async partnerRegister(name, email, password, specialization, clientId) {
     return this.request('/partners/register', {
       method: 'POST',
-      body: { name, email, password, specialization },
+      body: { name, email, password, specialization, clientId },
     });
   }
 
@@ -482,10 +483,10 @@ class ApiService {
     });
   }
 
-  async userRegister(email, password, profile) {
+  async userRegister(email, password, profile, clientId) {
     return this.request('/auth/user/register', {
       method: 'POST',
-      body: { email, password, profile },
+      body: { email, password, profile, clientId },
     });
   }
 
@@ -494,39 +495,40 @@ class ApiService {
   }
 
   // Mobile User Registration
-  async mobileUserRegisterStep1(email, password) {
+  async mobileUserRegisterStep1(email, password, clientId) {
     return this.request('/mobile/user/register/step1', {
       method: 'POST',
-      body: { email, password },
+      body: { email, password, clientId },
     });
   }
 
-  async mobileUserRegisterStep1Verify(email, otp) {
+  async mobileUserRegisterStep1Verify(email, otp, clientId) {
     return this.request('/mobile/user/register/step1/verify', {
       method: 'POST',
-      body: { email, otp },
+      body: { email, otp, clientId },
     });
   }
 
-  async mobileUserRegisterStep2(email, mobile) {
+  async mobileUserRegisterStep2(email, mobile, clientId) {
     return this.request('/mobile/user/register/step2', {
       method: 'POST',
-      body: { email, mobile },
+      body: { email, mobile, clientId, otpMethod: 'whatsapp' }, // Default to whatsapp
     });
   }
 
-  async mobileUserRegisterStep2Verify(email, otp) {
+  async mobileUserRegisterStep2Verify(email, otp, clientId) {
     return this.request('/mobile/user/register/step2/verify', {
       method: 'POST',
-      body: { email, otp },
+      body: { email, otp, clientId },
     });
   }
 
-  async mobileUserRegisterStep3(email, profileData, imageFileName, imageContentType) {
+  async mobileUserRegisterStep3(email, profileData, imageFileName, imageContentType, clientId) {
     return this.request('/mobile/user/register/step3', {
       method: 'POST',
       body: {
         email,
+        clientId,
         ...profileData,
         imageFileName,
         imageContentType
@@ -755,6 +757,17 @@ class ApiService {
     return this.request('/admin/settings/gemini-api-key', {
       method: 'PUT',
       body: { apiKey: apiKey || '', ...(clientId ? { clientId } : {}) },
+    });
+  }
+
+  async getAiProvider() {
+    return this.request('/admin/settings/ai-provider');
+  }
+
+  async updateAiProvider(aiProvider) {
+    return this.request('/admin/settings/ai-provider', {
+      method: 'PUT',
+      body: { aiProvider },
     });
   }
 

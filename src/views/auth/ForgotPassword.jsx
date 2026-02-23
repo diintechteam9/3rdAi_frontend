@@ -39,8 +39,11 @@ export default {
     return () => (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '3rem', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)' }}>
-          <h1 style={{ textAlign: 'center', marginBottom: '2rem', color: '#1f2937', fontSize: '2rem' }}>Forgot Password</h1>
-          
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <img src="/logo.png" alt="3rdAI Logo" style={{ width: '120px', height: '120px', borderRadius: '20px', objectFit: 'contain' }} />
+          </div>
+          <h1 style={{ textAlign: 'center', marginBottom: '2rem', color: '#1f2937', fontSize: '2rem', fontWeight: 'bold' }}>3rdAI Forgot Password</h1>
+
           {success.value ? (
             <div class="alert alert-success">
               <p style={{ margin: 0 }}>OTP has been sent to your email. Redirecting to verification...</p>
@@ -70,7 +73,7 @@ export default {
               </form>
             </>
           )}
-          
+
           <p style={{ textAlign: 'center', marginTop: '1.5rem', color: '#6b7280' }}>
             Remember your password?{' '}
             <RouterLink to="/user/login" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: 'bold' }}>
