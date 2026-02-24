@@ -67,8 +67,8 @@ export default {
 
     const Badge = ({ status }) => (
       <span style={`display: inline-flex; padding: 4px 12px; font-size: 12px; font-weight: 600; border-radius: 9999px; ${status === 'completed' ? 'background-color: #d1fae5; color: #065f46;' :
-          status === 'pending' ? 'background-color: #fef3c7; color: #92400e;' :
-            'background-color: #f3f4f6; color: #374151;'
+        status === 'pending' ? 'background-color: #fef3c7; color: #92400e;' :
+          'background-color: #f3f4f6; color: #374151;'
         }`}>
         {status}
       </span>
@@ -131,14 +131,7 @@ export default {
           return renderPlaceholder('Voice Sessions');
         case 'video':
           return renderPlaceholder('Video Sessions');
-        case 'payments':
-          return (
-            <iframe
-              src="/partner/earnings"
-              style="border: none; width: 100%; height: calc(100vh - 140px);"
-              title="Earnings History"
-            />
-          );
+
         case 'profile':
           return renderPlaceholder('Profile Settings');
         default:
@@ -183,7 +176,7 @@ export default {
               { id: 'chat', label: 'Chat', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg> },
               { id: 'voice', label: 'Voice', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" /></svg> },
               { id: 'video', label: 'Video', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" /></svg> },
-              { id: 'payments', label: 'Payments', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zM14 6a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h8zM6 10a1 1 0 011-1h2a1 1 0 110 2H7a1 1 0 01-1-1zm5 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z" /></svg> },
+
               { id: 'profile', label: 'Profile', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg> }
             ].map(item => (
               <button
@@ -195,8 +188,8 @@ export default {
                   }
                 }}
                 style={`width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 4px; text-align: left; border-radius: 8px; transition: all 0.2s; border: none; cursor: pointer; justify-content: ${sidebarCollapsed.value ? 'center' : 'flex-start'}; ${activeTab.value === item.id
-                    ? 'background: #2d2d3e; color: #6366f1; border-left: 3px solid #6366f1;'
-                    : 'color: #b4b4c0; background: transparent;'
+                  ? 'background: #2d2d3e; color: #6366f1; border-left: 3px solid #6366f1;'
+                  : 'color: #b4b4c0; background: transparent;'
                   }`}
               >
                 <span style="font-size: 18px;">{item.icon}</span>

@@ -16,6 +16,7 @@ import {
   CpuChipIcon,
   SparklesIcon,
   ChartBarIcon,
+  VideoCameraIcon,
   MoonIcon
 } from '@heroicons/vue/24/outline';
 
@@ -56,6 +57,7 @@ export default {
     };
     const activePage = computed(() => {
       const path = router.currentRoute.value.path;
+      if (path.includes('/cctv-surveillance')) return 'cctv';
       if (path.includes('/chat')) return 'chat';
       if (path.includes('/voice')) return 'voice';
 
@@ -73,6 +75,8 @@ export default {
 
       if (page === 'home') {
         router.push('/mobile/user/dashboard');
+      } else if (page === 'cctv') {
+        router.push('/mobile/user/cctv-surveillance');
       } else if (page === 'chat') {
         router.push('/mobile/user/chat');
       } else if (page === 'voice') {
@@ -177,7 +181,7 @@ export default {
             `}</style>
             {[
               { id: 'home', label: 'Home', icon: HomeIcon },
-
+              { id: 'cctv', label: 'CCTV', icon: VideoCameraIcon },
               { id: 'voice', label: 'Voice', icon: MicrophoneIcon },
               { id: 'chat', label: 'Chat', icon: ChatBubbleLeftRightIcon },
               { id: 'profile', label: 'Profile', icon: UserIcon },
@@ -322,9 +326,13 @@ export default {
           </header>
 
           <main style={{
-            padding: isMobile.value ? '1rem' : '2rem',
+            padding: router.currentRoute.value.path.includes('cctv-surveillance') ? '0' : (isMobile.value ? '1rem' : '2rem'),
             flex: 1,
-            minHeight: 'calc(100vh - 70px)'
+            display: 'flex',
+            flexDirection: 'column',
+            height: router.currentRoute.value.path.includes('cctv-surveillance') ? 'calc(100vh - 70px)' : 'auto',
+            minHeight: 'calc(100vh - 70px)',
+            overflow: router.currentRoute.value.path.includes('cctv-surveillance') ? 'hidden' : 'visible'
           }}>
             <RouterView />
           </main>

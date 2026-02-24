@@ -13,8 +13,8 @@ export default {
       password: '',
       profile: {
         name: '',
-        policeStation: '',
-        serviceId: ''
+        address: '',
+        currentLocation: ''
       }
     });
 
@@ -41,8 +41,8 @@ export default {
           password: '',
           profile: {
             name: '',
-            policeStation: '',
-            serviceId: ''
+            address: '',
+            currentLocation: ''
           }
         };
         fetchUsers();
@@ -66,6 +66,15 @@ export default {
       newUser.value.profile[field] = value;
     };
 
+    const handleApproval = async (id, status) => {
+      try {
+        await api.updateClientUser(id, { approvalStatus: status });
+        fetchUsers();
+      } catch (error) {
+        alert(error.message || `Failed to update user status`);
+      }
+    };
+
     onMounted(() => {
       fetchUsers();
     });
@@ -84,10 +93,11 @@ export default {
                 <tr>
                   <th>Email</th>
                   <th>Name</th>
-                  <th>Police Station</th>
-                  <th>Service ID</th>
+                  <th>Address</th>
+                  <th>Current Location</th>
                   <th>Created At</th>
                   <th>Status</th>
+                  <th>Approval</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -96,8 +106,8 @@ export default {
                   <tr key={user._id}>
                     <td>{user.email}</td>
                     <td>{user.profile?.name || '-'}</td>
-                    <td>{user.profile?.policeStation || '-'}</td>
-                    <td>{user.profile?.serviceId || '-'}</td>
+                    <td>{user.profile?.address || '-'}</td>
+                    <td>{user.profile?.currentLocation || '-'}</td>
                     <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td>
                       <span class={`badge ${user.isActive ? 'bg-success' : 'bg-danger'}`}>
@@ -105,9 +115,20 @@ export default {
                       </span>
                     </td>
                     <td>
+                      <span class={`badge ${user.approvalStatus === 'approved' ? 'bg-success' : user.approvalStatus === 'rejected' ? 'bg-danger' : 'bg-warning'}`}>
+                        {user.approvalStatus || 'pending'}
+                      </span>
+                    </td>
+                    <td>
+                      {(!user.approvalStatus || user.approvalStatus === 'pending') && (
+                        <>
+                          <button onClick={() => handleApproval(user._id, 'approved')} class="btn btn-success btn-sm me-2 mb-1">Approve</button>
+                          <button onClick={() => handleApproval(user._id, 'rejected')} class="btn btn-warning btn-sm me-2 mb-1">Reject</button>
+                        </>
+                      )}
                       <button
                         onClick={() => handleDelete(user._id)}
-                        class="btn btn-danger btn-sm"
+                        class="btn btn-danger btn-sm mb-1"
                       >
                         Delete
                       </button>
@@ -158,15 +179,15 @@ export default {
                           />
                         </div>
 
-                        {/* Left: Police Station | Right: Password (directly below Email) */}
+                        {/* Left: Address | Right: Password (directly below Email) */}
                         <div class="col-md-6 mb-3">
-                          <label class="form-label">Police Station</label>
+                          <label class="form-label">Address</label>
                           <input
-                            value={newUser.value.profile.policeStation}
-                            onInput={(e) => updateProfile('policeStation', e.target.value)}
+                            value={newUser.value.profile.address}
+                            onInput={(e) => updateProfile('address', e.target.value)}
                             type="text"
                             class="form-control"
-                            placeholder="e.g., Sector 5 PS"
+                            placeholder="Enter full address"
                           />
                         </div>
                         <div class="col-md-6 mb-3">
@@ -182,15 +203,15 @@ export default {
                           />
                         </div>
 
-                        {/* Service ID — full width */}
+                        {/* Current Location — full width */}
                         <div class="col-md-6 mb-3">
-                          <label class="form-label">Service ID</label>
+                          <label class="form-label">Current Location</label>
                           <input
-                            value={newUser.value.profile.serviceId}
-                            onInput={(e) => updateProfile('serviceId', e.target.value)}
+                            value={newUser.value.profile.currentLocation}
+                            onInput={(e) => updateProfile('currentLocation', e.target.value)}
                             type="text"
                             class="form-control"
-                            placeholder="e.g., SVC-2024-001"
+                            placeholder="Enter current city/location"
                           />
                         </div>
                       </div>

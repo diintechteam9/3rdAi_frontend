@@ -14,7 +14,7 @@ export default {
     const connectionStatus = ref('disconnected');
     const conversationHistory = ref([]);
     const debugLog = ref([]);
-    
+
     // WebSocket and media
     let ws = null;
     let mediaRecorder = null;
@@ -89,8 +89,11 @@ export default {
         connectionStatus.value = 'connecting';
 
         // Setup WebSocket connection
-        const wsUrl = 'ws://localhost:5000/api/voice/agent';
-        
+        // Get base URL from environment and convert http to ws
+        const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+        const wsBaseUrl = baseUrl.replace(/^http/, 'ws');
+        const wsUrl = `${wsBaseUrl}/api/voice/agent`;
+
         addDebugLog(`Connecting to WebSocket: ${wsUrl}`);
         console.log('[VoiceAgent] Connecting to WebSocket:', wsUrl);
         ws = new WebSocket(wsUrl);
@@ -128,7 +131,7 @@ export default {
             // Process audio in chunks and send as PCM
             const bufferSize = 4096;
             scriptProcessorNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
-            
+
             let audioChunksSent = 0;
 
             scriptProcessorNode.onaudioprocess = (e) => {
@@ -137,13 +140,13 @@ export default {
               }
 
               const inputData = e.inputBuffer.getChannelData(0);
-              
+
               // Downsample from 48kHz to 16kHz
               const downsampled = downsampleBuffer(inputData, 48000, 16000);
-              
+
               // Convert to 16-bit PCM
               const pcmData = floatTo16BitPCM(downsampled);
-              
+
               // Send to backend
               const base64Audio = arrayBufferToBase64(pcmData);
               ws.send(JSON.stringify({
@@ -162,12 +165,15 @@ export default {
 
             addDebugLog('Audio processing pipeline configured (PCM 16kHz)');
 
+            // Get appropriate token
+            const activeToken = token.value || localStorage.getItem('token_user') || localStorage.getItem('token_client');
+
             // Send start command
             const startCommand = {
               type: 'start',
               chatId: chatId.value,
               userId: user.value?._id,
-              token: token.value
+              token: activeToken
             };
             addDebugLog(`Sending start command (userId: ${user.value?._id})`);
             console.log('[VoiceAgent] Sending start command to backend:', startCommand);
@@ -238,7 +244,7 @@ export default {
             case 'audio_chunk':
               const audioData = base64ToArrayBuffer(data.audio);
               audioQueue.push(audioData);
-              
+
               if (!isPlayingAudio.value) {
                 playAudioQueue();
               }
@@ -298,11 +304,11 @@ export default {
     // Stop session
     const stopSession = () => {
       console.log('[VoiceAgent] Stopping session...');
-      
+
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'stop' }));
       }
-      
+
       cleanup();
     };
 
@@ -379,7 +385,7 @@ export default {
             const source = audioContext.createBufferSource();
             source.buffer = buffer;
             source.connect(audioContext.destination);
-            
+
             source.onended = () => resolve();
             source.start(0);
           },
@@ -430,9 +436,9 @@ export default {
         {/* Status Bar */}
         <div style={{
           padding: '15px',
-          backgroundColor: connectionStatus.value === 'active' ? '#d4edda' : 
-                          connectionStatus.value === 'connected' ? '#fff3cd' : 
-                          connectionStatus.value === 'error' ? '#f8d7da' : '#f8f9fa',
+          backgroundColor: connectionStatus.value === 'active' ? '#d4edda' :
+            connectionStatus.value === 'connected' ? '#fff3cd' :
+              connectionStatus.value === 'error' ? '#f8d7da' : '#f8f9fa',
           borderRadius: '8px',
           marginBottom: '20px',
           display: 'flex',
@@ -442,9 +448,9 @@ export default {
           <div>
             <strong>Status:</strong> {
               connectionStatus.value === 'active' ? '🟢 Active' :
-              connectionStatus.value === 'connected' ? '🟡 Connecting...' :
-              connectionStatus.value === 'error' ? '🔴 Error' :
-              '⚪ Disconnected'
+                connectionStatus.value === 'connected' ? '🟡 Connecting...' :
+                  connectionStatus.value === 'error' ? '🔴 Error' :
+                    '⚪ Disconnected'
             }
             {chatId.value && <span style={{ marginLeft: '15px' }}>
               <strong>Chat ID:</strong> {chatId.value}
@@ -485,10 +491,10 @@ export default {
             }}
           >
             {connectionStatus.value === 'connected' ? '⏳ Connecting...' :
-             isActive.value ? '⏹ Stop' : '▶️ Start'}
+              isActive.value ? '⏹ Stop' : '▶️ Start'}
           </button>
           <p style={{ marginTop: '20px', color: '#6c757d', fontSize: '14px' }}>
-            {isActive.value 
+            {isActive.value
               ? 'Speak naturally. AI will respond after you pause.'
               : 'Click to start your voice conversation'}
           </p>

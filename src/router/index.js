@@ -182,11 +182,7 @@ const routes = [
         component: () => import('../views/mobile/ComingSoon.jsx')
       },
 
-      {
-        path: 'home',
-        name: 'MobileHome',
-        component: () => import('../views/mobile/Navigation/Home.jsx')
-      },
+
 
 
       {

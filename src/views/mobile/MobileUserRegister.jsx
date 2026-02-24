@@ -31,14 +31,15 @@ export default {
     // Step 3: Profile
     const profile = ref({
       name: '',
-      policeStation: '',
-      serviceId: ''
+      address: '',
+      currentLocation: ''
     });
     const imageFile = ref(null);
     const userToken = ref(null);
 
     const loading = ref(false);
     const error = ref('');
+    const fetchingLocation = ref(false);
 
     // Step 1: Send Email OTP
     const handleStep1 = async (e) => {
@@ -183,6 +184,29 @@ export default {
         error.value = err.message || 'Failed to resend OTP';
       }
     };
+
+    // Get Current Location
+    const getCurrentLocation = () => {
+      fetchingLocation.value = true;
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            profile.value.currentLocation = `${lat}, ${lng}`;
+            fetchingLocation.value = false;
+          },
+          (err) => {
+            console.error('Error fetching location', err);
+            alert('Failed to get location. Please allow location access or map might not be secure.');
+            fetchingLocation.value = false;
+          }
+        );
+      } else {
+        alert('Geolocation is not supported by this browser.');
+        fetchingLocation.value = false;
+      }
+    };
     // Step 3: Complete Profile
     const handleStep3 = async (e) => {
       e.preventDefault();
@@ -190,7 +214,7 @@ export default {
       error.value = '';
 
       // Validate required fields
-      if (!profile.value.name || !profile.value.policeStation || !profile.value.serviceId) {
+      if (!profile.value.name || !profile.value.address) {
         error.value = 'Please fill in all required fields';
         loading.value = false;
         return;
@@ -602,26 +626,37 @@ export default {
                     />
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Police Station *</label>
+                    <label class="form-label">Address *</label>
                     <input
-                      value={profile.value.policeStation}
-                      onInput={(e) => profile.value.policeStation = e.target.value}
+                      value={profile.value.address}
+                      onInput={(e) => profile.value.address = e.target.value}
                       type="text"
                       class="form-control"
                       required
-                      placeholder="Enter police station name"
+                      placeholder="Enter your address"
                     />
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Service ID *</label>
-                    <input
-                      value={profile.value.serviceId}
-                      onInput={(e) => profile.value.serviceId = e.target.value}
-                      type="text"
-                      class="form-control"
-                      required
-                      placeholder="Enter your service ID"
-                    />
+                    <label class="form-label">Current Location (Lat, Lng) *</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        value={profile.value.currentLocation}
+                        onInput={(e) => profile.value.currentLocation = e.target.value}
+                        type="text"
+                        class="form-control"
+                        required
+                        placeholder="E.g. 28.6139, 77.2090"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn-secondary"
+                        onClick={getCurrentLocation}
+                        disabled={fetchingLocation.value}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {fetchingLocation.value ? 'Fetching...' : '📍 Auto Detect'}
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" disabled={loading.value} class="btn btn-primary w-100">
                     {loading.value ? 'Completing Registration...' : 'Complete Registration'}

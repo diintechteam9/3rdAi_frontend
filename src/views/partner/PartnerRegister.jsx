@@ -16,7 +16,9 @@ export default {
       email: '',
       password: '',
       phone: '',
-      specialization: '',
+      designation: '',
+      policeId: '',
+      policeStation: '',
       clientId: ''
     });
     const profileImageFile = ref(null);
@@ -159,21 +161,37 @@ export default {
                       />
                     </div>
 
-                    <div class="mb-4">
-                      <label class="form-label fw-semibold">Specialization</label>
-                      <select
-                        class="form-select form-select-lg rounded-3"
-                        value={registerForm.value.specialization}
-                        onChange={(e) => (registerForm.value.specialization = e.target.value)}
-                      >
-                        <option value="">Select specialization</option>
-                        <option value="Astrology">Astrology</option>
-                        <option value="Numerology">Numerology</option>
-                        <option value="Tarot Reading">Tarot Reading</option>
-                        <option value="Palmistry">Palmistry</option>
-                        <option value="Vastu">Vastu</option>
-                        <option value="Spiritual Counseling">Spiritual Counseling</option>
-                      </select>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Designation</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-lg rounded-3"
+                        placeholder="e.g. Sub-Inspector"
+                        value={registerForm.value.designation}
+                        onInput={(e) => (registerForm.value.designation = e.target.value)}
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Police ID</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-lg rounded-3"
+                        placeholder="e.g. PID-102938"
+                        value={registerForm.value.policeId}
+                        onInput={(e) => (registerForm.value.policeId = e.target.value)}
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Police Station</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-lg rounded-3"
+                        placeholder="e.g. Central Delhi West"
+                        value={registerForm.value.policeStation}
+                        onInput={(e) => (registerForm.value.policeStation = e.target.value)}
+                      />
                     </div>
 
                     <div class="mb-4">

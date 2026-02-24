@@ -106,24 +106,23 @@ export default {
                     </div>
                   )}
 
-                  {/* Police Station */}
-                  {user.value.profile?.policeStation && (
+                  {/* Address */}
+                  {user.value.profile?.address && (
                     <div class="mb-3">
-                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Police Station:</strong>
-                      <span style={{ color: '#333' }}>{user.value.profile.policeStation}</span>
+                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Address:</strong>
+                      <span style={{ color: '#333' }}>{user.value.profile.address}</span>
                     </div>
                   )}
 
-                  {/* Service ID */}
-                  {user.value.profile?.serviceId && (
+                  {/* Current Location */}
+                  {user.value.profile?.currentLocation && (
                     <div class="mb-3">
-                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Service ID:</strong>
+                      <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Current Location:</strong>
                       <span style={{
-                        color: '#007bff',
+                        color: '#333',
                         fontWeight: '600',
-                        fontFamily: 'monospace',
                         fontSize: '15px'
-                      }}>{user.value.profile.serviceId}</span>
+                      }}>{user.value.profile.currentLocation}</span>
                     </div>
                   )}
                 </div>

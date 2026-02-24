@@ -176,19 +176,21 @@ class ApiService {
         endpoint.includes('/mobile/chat') || endpoint.includes('/mobile/voice') ||
         endpoint.includes('/mobile/user/profile') ||
         endpoint.includes('/notifications')) {
-        // USER ENDPOINTS - Use user token
-        token = getTokenForRole('user');
-        tokenSource = 'user (authenticated endpoint)';
+        // Let's check for 'client' or 'user' tokens for chat/voice
+        token = getTokenForRole('user') || getTokenForRole('client');
+        tokenSource = 'user/client (authenticated endpoint)';
 
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.role !== 'user') {
+            // Only reject if it's strictly not user or client, BUT ONLY for chat/voice.
+            // For other mobile endpoints, keep strictly 'user' or whatever works.
+            if (payload.role !== 'user' && payload.role !== 'client') {
               console.error('[API Error] Wrong token role for user endpoint:', {
                 endpoint,
                 tokenRole: payload.role,
-                requiredRole: 'user',
-                message: 'Rejecting non-user token for user endpoint'
+                requiredRole: 'user/client',
+                message: 'Rejecting non-user/client token for user endpoint'
               });
               token = null;
               tokenSource = 'rejected (wrong role)';
@@ -1052,6 +1054,8 @@ const api = {
   updateGeminiApiKey: apiService.updateGeminiApiKey.bind(apiService),
   getOpenAIApiKey: apiService.getOpenAIApiKey.bind(apiService),
   updateOpenAIApiKey: apiService.updateOpenAIApiKey.bind(apiService),
+  getAiProvider: apiService.getAiProvider.bind(apiService),
+  updateAiProvider: apiService.updateAiProvider.bind(apiService),
   getAdminPrompts: apiService.getAdminPrompts.bind(apiService),
   updateAdminPrompt: apiService.updateAdminPrompt.bind(apiService),
   getClientUsers: apiService.getClientUsers.bind(apiService),

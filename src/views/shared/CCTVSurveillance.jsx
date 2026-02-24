@@ -59,6 +59,17 @@ export default {
             totalAlerts: MOCK_CAMERAS.reduce((a, c) => a + c.alerts, 0),
         });
 
+        const isFullScreen = ref(false);
+
+        const toggleFullScreen = () => {
+            isFullScreen.value = !isFullScreen.value;
+            setTimeout(() => {
+                if (mapInstance.value) {
+                    mapInstance.value.invalidateSize();
+                }
+            }, 100);
+        };
+
         let leaflet = null;
         let kmlLayer = null;
         let cameraMarkers = [];
@@ -174,6 +185,10 @@ export default {
                                 this.setStyle({ fillOpacity: 0.25, weight: 1.5 });
                             });
 
+                            polygon.on('click', function () {
+                                searchQuery.value = name;
+                            });
+
                             polygon.addTo(map);
                             polygon._districtFilter = district;
                             polygon._pincodeFilter = pincode;
@@ -251,18 +266,36 @@ export default {
             const district = selectedDistrict.value;
 
             // Find matching polygons
-            const matching = kmlLayer.filter(polygon => {
+            const matching = [];
+            kmlLayer.forEach(polygon => {
                 const districtMatch = district === 'All' || polygon._districtFilter === district;
                 const searchMatch = query === '' ||
                     (polygon._pincodeFilter && polygon._pincodeFilter.includes(query)) ||
                     (polygon._nameFilter && polygon._nameFilter.includes(query)) ||
                     (polygon._districtFilter && polygon._districtFilter.toLowerCase().includes(query));
-                return districtMatch && searchMatch;
+
+                if (districtMatch && searchMatch) {
+                    matching.push(polygon);
+                    polygon.addTo(mapInstance.value); // Show matching polygons
+                } else {
+                    polygon.removeFrom(mapInstance.value); // Hide non-matching polygons
+                }
             });
 
-            if (matching.length === 0) {
-                // No match — reset to Delhi default view
+            if (district === 'All' && query === '') {
+                // No search or filter — reset to Delhi default view and show all
                 mapInstance.value.setView([28.6139, 77.2090], 11);
+
+                // Show all markers if default view
+                cameraMarkers.forEach(marker => {
+                    marker.addTo(mapInstance.value);
+                });
+                return;
+            }
+
+            if (matching.length === 0) {
+                // Hide all markers if nothing matches the query
+                cameraMarkers.forEach(marker => marker.removeFrom(mapInstance.value));
                 return;
             }
 
@@ -279,6 +312,15 @@ export default {
 
             if (bounds && bounds.isValid()) {
                 mapInstance.value.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+
+                // Show/Hide markers based on if they are within the filtered bounds
+                cameraMarkers.forEach(marker => {
+                    if (bounds.contains(marker.getLatLng())) {
+                        marker.addTo(mapInstance.value);
+                    } else {
+                        marker.removeFrom(mapInstance.value);
+                    }
+                });
             }
         };
 
@@ -308,10 +350,14 @@ export default {
         });
 
         return () => (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', fontFamily: 'Inter, sans-serif' }}>
+            <div style={{
+                display: 'flex', flexDirection: 'column',
+                ...(isFullScreen.value ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 } : { flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }),
+                background: '#f8fafc', fontFamily: 'Inter, sans-serif'
+            }}>
 
                 {/* Header */}
-                <div style={{ padding: '1rem 1.5rem', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', borderBottom: '1px solid #1e3a5f', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ padding: '0.8rem 1.5rem', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #ef4444, #991b1b)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>🎥</div>
                         <div>
@@ -321,7 +367,7 @@ export default {
                     </div>
 
                     {/* Stats Row */}
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         {[
                             { label: 'Zones', value: stats.value.totalZones, color: '#6366f1' },
                             { label: 'Online', value: stats.value.onlineCameras, color: '#22c55e' },
@@ -337,12 +383,12 @@ export default {
                 </div>
 
                 {/* Toolbar */}
-                <div style={{ padding: '0.75rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>🔍 Filter:</span>
+                <div style={{ padding: '0.6rem 1.5rem', background: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                    <span style={{ color: '#475569', fontSize: '0.85rem', fontWeight: 600 }}>🔍 Filter:</span>
                     <select
                         value={selectedDistrict.value}
                         onChange={(e) => { selectedDistrict.value = e.target.value; }}
-                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '6px', padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
+                        style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.4rem 0.8rem', fontSize: '0.85rem', outline: 'none', transition: 'all 0.2s' }}
                     >
                         {districts.value.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -351,12 +397,12 @@ export default {
                         placeholder="Search pincode or area..."
                         value={searchQuery.value}
                         onInput={(e) => { searchQuery.value = e.target.value; }}
-                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '6px', padding: '0.35rem 0.75rem', fontSize: '0.85rem', minWidth: 200 }}
+                        style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.4rem 0.8rem', fontSize: '0.85rem', minWidth: 200, outline: 'none', transition: 'all 0.2s' }}
                     />
 
                     {/* Legend */}
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Legend:</span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: '#f1f5f9', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
+                        <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 600 }}>Legend:</span>
                         {[
                             { color: '#22c55e', label: 'Online' },
                             { color: '#f97316', label: 'Alert' },
@@ -364,30 +410,42 @@ export default {
                         ].map(l => (
                             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: l.color, border: '2px solid white', boxShadow: `0 0 0 1px ${l.color}` }}></div>
-                                <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{l.label}</span>
+                                <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 500 }}>{l.label}</span>
                             </div>
                         ))}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <div style={{ width: 12, height: 12, background: '#6366f1', opacity: 0.5, border: '1px solid #6366f1' }}></div>
-                            <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Pincode Zone</span>
+                            <div style={{ width: 12, height: 12, background: '#6366f1', opacity: 0.5, border: '1px solid #6366f1', borderRadius: '2px' }}></div>
+                            <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 500 }}>Pincode Zone</span>
                         </div>
                     </div>
+                    {/* Full Screen Toggle Button */}
+                    <button
+                        onClick={toggleFullScreen}
+                        style={{
+                            marginLeft: '1rem', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white', border: 'none',
+                            borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            fontWeight: 600, boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.4), 0 2px 4px -1px rgba(59, 130, 246, 0.2)', transition: 'transform 0.2s, box-shadow 0.2s'
+                        }}
+                    >
+                        {isFullScreen.value ? 'Exit Full Screen ⛶' : 'Full Screen ⛶'}
+                    </button>
                 </div>
 
                 {/* Map Container */}
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
                     {isLoading.value && (
-                        <div style={{ position: 'absolute', inset: 0, zIndex: 1000, background: '#0f172a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                            <div style={{ width: 50, height: 50, border: '4px solid #334155', borderTop: '4px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                            <p style={{ color: '#94a3b8', margin: 0 }}>Delhi NCT map load ho raha hai...</p>
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 1000, background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                            <div style={{ width: 50, height: 50, border: '4px solid #e2e8f0', borderTop: '4px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                            <p style={{ color: '#475569', margin: 0, fontWeight: 500 }}>Loading map data...</p>
                             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
                         </div>
                     )}
                     {error.value && (
-                        <div style={{ position: 'absolute', inset: 0, zIndex: 1000, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ background: '#1e293b', padding: '2rem', borderRadius: '12px', border: '1px solid #ef444433', color: '#ef4444', maxWidth: 400, textAlign: 'center' }}>
-                                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
-                                <p style={{ margin: 0, color: '#94a3b8' }}>{error.value}</p>
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 1000, background: 'rgba(255, 255, 255, 0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ background: '#fef2f2', padding: '2rem', borderRadius: '16px', border: '1px solid #fca5a5', color: '#dc2626', maxWidth: 400, textAlign: 'center', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
+                                <p style={{ margin: 0, fontWeight: 500 }}>{error.value}</p>
                             </div>
                         </div>
                     )}
@@ -395,22 +453,24 @@ export default {
 
                     {/* Selected Camera Panel */}
                     {selectedCamera.value && (
-                        <div style={{ position: 'absolute', bottom: '1.5rem', right: '1rem', zIndex: 999, background: '#1e293b', borderRadius: '12px', padding: '1rem 1.25rem', border: '1px solid #334155', minWidth: 220, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                <span style={{ color: 'white', fontWeight: 600 }}>📷 {selectedCamera.value.name}</span>
-                                <button onClick={() => { selectedCamera.value = null; }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+                        <div style={{ position: 'absolute', bottom: '2rem', right: '1.5rem', zIndex: 999, background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.2)', minWidth: 260, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '1.1rem' }}>📷 {selectedCamera.value.name}</span>
+                                <button onClick={() => { selectedCamera.value = null; }} style={{ background: '#f1f5f9', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>✕</button>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                                <div style={{ background: '#0f172a', borderRadius: '8px', padding: '0.5rem', textAlign: 'center' }}>
-                                    <div style={{ color: selectedCamera.value.status === 'online' ? '#22c55e' : '#6b7280', fontWeight: 700, fontSize: '0.8rem' }}>{selectedCamera.value.status.toUpperCase()}</div>
-                                    <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Status</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.75rem', textAlign: 'center' }}>
+                                    <div style={{ color: selectedCamera.value.status === 'online' ? '#059669' : '#64748b', fontWeight: 800, fontSize: '0.9rem' }}>{selectedCamera.value.status.toUpperCase()}</div>
+                                    <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 500, marginTop: '2px' }}>Status</div>
                                 </div>
-                                <div style={{ background: '#0f172a', borderRadius: '8px', padding: '0.5rem', textAlign: 'center' }}>
-                                    <div style={{ color: selectedCamera.value.alerts > 0 ? '#ef4444' : '#22c55e', fontWeight: 700, fontSize: '0.8rem' }}>{selectedCamera.value.alerts}</div>
-                                    <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Alerts</div>
+                                <div style={{ background: selectedCamera.value.alerts > 0 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${selectedCamera.value.alerts > 0 ? '#fecaca' : '#bbf7d0'}`, borderRadius: '12px', padding: '0.75rem', textAlign: 'center' }}>
+                                    <div style={{ color: selectedCamera.value.alerts > 0 ? '#dc2626' : '#059669', fontWeight: 800, fontSize: '0.9rem' }}>{selectedCamera.value.alerts}</div>
+                                    <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 500, marginTop: '2px' }}>Alerts</div>
                                 </div>
                             </div>
-                            <div style={{ marginTop: '0.75rem', color: '#94a3b8', fontSize: '0.75rem' }}>ID: {selectedCamera.value.id}</div>
+                            <div style={{ marginTop: '1rem', color: '#64748b', fontSize: '0.8rem', fontWeight: 500, textAlign: 'center', padding: '0.5rem', background: '#f1f5f9', borderRadius: '8px' }}>
+                                Camera ID: <span style={{ color: '#0f172a', fontWeight: 600 }}>{selectedCamera.value.id}</span>
+                            </div>
                         </div>
                     )}
                 </div>
