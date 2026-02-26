@@ -1,20 +1,43 @@
 import { ref, onMounted } from 'vue';
 import { useAuth } from '../../store/auth.js';
 import { useRouter } from 'vue-router';
-import { UserIcon } from '@heroicons/vue/24/outline';
+import { UserIcon, CameraIcon, CheckIcon, XMarkIcon, PencilIcon } from '@heroicons/vue/24/outline';
+import { useToast } from 'vue-toastification';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+
 export default {
   name: 'MobileUserProfile',
   setup() {
     const { user, fetchCurrentUser } = useAuth();
     const router = useRouter();
+    const toast = useToast();
+
     const loading = ref(false);
+    const saving = ref(false);
     const error = ref('');
+
+    const isEditing = ref(false);
+    const editForm = ref({ name: '', mobile: '' });
+    const profileImageFile = ref(null);
+    const profileImagePreview = ref(null);
+
+    const initEditForm = () => {
+      if (!user.value) return;
+      editForm.value = {
+        name: user.value.profile?.name || user.value.name || '',
+        mobile: user.value.mobile || ''
+      };
+      profileImageFile.value = null;
+      profileImagePreview.value = getProfileImageUrl();
+    };
 
     onMounted(async () => {
       loading.value = true;
       error.value = '';
       try {
         await fetchCurrentUser('user');
+        initEditForm();
       } catch (e) {
         console.error('[MobileUserProfile] Failed to load user profile:', e);
         error.value = e.message || 'Failed to load profile';
@@ -28,82 +51,184 @@ export default {
       return user.value.profileImageUrl || user.value.profileImage || null;
     };
 
+    const toggleEdit = () => {
+      if (isEditing.value) {
+        initEditForm(); // cancel changes
+        isEditing.value = false;
+      } else {
+        document.getElementById('userProfileImageInput').click();
+      }
+    };
+
+    const handleImageChange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Image size must be less than 5MB');
+          return;
+        }
+        profileImageFile.value = file;
+        profileImagePreview.value = URL.createObjectURL(file);
+        isEditing.value = true;
+      }
+    };
+
+    const saveProfile = async () => {
+      const token = localStorage.getItem('token_user') || localStorage.getItem('token');
+      if (!token) return;
+
+      saving.value = true;
+      try {
+        const formData = new FormData();
+
+        // We only allow updating the profile image now
+        if (profileImageFile.value) {
+          formData.append('profileImage', profileImageFile.value);
+        } else {
+          toast.error('Please select an image to upload.');
+          saving.value = false;
+          return;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/users/profile`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          await fetchCurrentUser('user');
+          toast.success('Profile updated successfully!');
+          isEditing.value = false;
+        } else {
+          toast.error(data.message || 'Failed to update profile');
+        }
+      } catch (e) {
+        toast.error('Network error while saving');
+        console.error('Update error:', e);
+      } finally {
+        saving.value = false;
+      }
+    };
+
     return () => {
-      const imageUrl = getProfileImageUrl();
+      const imageUrl = isEditing.value ? profileImagePreview.value : getProfileImageUrl();
 
       return (
         <div class="profile-page">
-          <div class="header">
-            <h1>My Account</h1>
+          <div class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem;">
+            <h1 style="margin: 0; font-size: 1.5rem; color: #1e293b; font-weight: 700;">My Profile</h1>
+            {!loading.value && !error.value && user.value && (
+              <button
+                onClick={isEditing.value ? saveProfile : toggleEdit}
+                disabled={saving.value}
+                style={`
+                  background: ${isEditing.value ? '#10b981' : '#3b82f6'}; 
+                  color: white; border: none; padding: 0.5rem 1rem; border-radius: 20px;
+                  font-size: 0.875rem; font-weight: 600; cursor: pointer;
+                  display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;
+                `}
+              >
+                {saving.value ? (
+                  <span>Saving...</span>
+                ) : isEditing.value ? (
+                  <><CheckIcon style="width: 1rem; height: 1rem;" /> Save Photo</>
+                ) : (
+                  <><CameraIcon style="width: 1rem; height: 1rem;" /> Update Photo</>
+                )}
+              </button>
+            )}
           </div>
 
-          {loading.value && <div class="loading">Loading...</div>}
-          {error.value && <div class="error">{error.value}</div>}
+          {loading.value && (
+            <div class="loading" style="text-align: center; padding: 3rem; color: #64748b;">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+          )}
+
+          {error.value && (
+            <div class="error" style="margin: 1rem; padding: 1rem; background: #fee2e2; color: #b91c1c; border-radius: 8px;">
+              {error.value}
+            </div>
+          )}
 
           {!loading.value && !error.value && user.value && (
-            <div class="content">
-              <div class="profile-image-container">
-                {imageUrl ? (
-                  <div class="profile-image">
-                    <img src={imageUrl} alt="Profile" />
-                  </div>
-                ) : (
-                  <div class="profile-placeholder">
-                    <UserIcon style={{ width: '3rem', height: '3rem', color: '#64748b' }} />
+            <div class="content" style="padding: 1.5rem; max-width: 600px; margin: 0 auto;">
+
+              {/* Avatar Section */}
+              <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem;">
+                <div style="position: relative; width: 110px; height: 110px;">
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt="Profile"
+                      style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"
+                    />
+                  ) : (
+                    <div style="width: 100%; height: 100%; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                      <UserIcon style="width: 3rem; height: 3rem; color: #94a3b8;" />
+                    </div>
+                  )}
+
+                  {isEditing.value && (
+                    <div
+                      onClick={() => document.getElementById('userProfileImageInput').click()}
+                      style="position: absolute; bottom: 0; right: 0; background: #3b82f6; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"
+                    >
+                      <CameraIcon style="width: 1rem; height: 1rem;" />
+                    </div>
+                  )}
+                  <input type="file" id="userProfileImageInput" accept="image/*" style="display: none;" onChange={handleImageChange} />
+                </div>
+
+                {!isEditing.value && (
+                  <div style="margin-top: 1rem; text-align: center;">
+                    <h2 style="margin: 0; font-size: 1.25rem; color: #0f172a; font-weight: 700;">{user.value.profile?.name || user.value.name || 'User'}</h2>
+                    <span style="color: #64748b; font-size: 0.875rem;">{user.value.email}</span>
                   </div>
                 )}
               </div>
 
-              <div class="section">
-                <h3>Basic Info</h3>
-                <div class="field">
-                  <span class="label">Email:</span>
-                  <span class="value">{user.value.email || 'N/A'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Mobile:</span>
-                  <span class="value">{user.value.mobile || 'N/A'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Name:</span>
-                  <span class="value">{user.value.profile?.name || user.value.name || 'N/A'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Role:</span>
-                  <span class="value">{user.value.role || 'N/A'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Client Name:</span>
-                  <span class="value">{user.value.clientId?.businessName || 'N/A'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Client ID:</span>
-                  <span class="value">{user.value.clientId?.clientId || 'N/A'}</span>
-                </div>
-              </div>
+              {/* Form / Details Fields */}
+              <div style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
 
-              <div class="section">
-                <h3>Account Status</h3>
-                <div class="field">
-                  <span class="label">Email Verified:</span>
-                  <span class="value">{user.value.emailVerified ? 'Yes' : 'No'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Mobile Verified:</span>
-                  <span class="value">{user.value.mobileVerified ? 'Yes' : 'No'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Registration Step:</span>
-                  <span class="value">{user.value.registrationStep || 'N/A'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Active:</span>
-                  <span class="value">{user.value.isActive ? 'Yes' : 'No'}</span>
-                </div>
-                <div class="field">
-                  <span class="label">Member Since:</span>
-                  <span class="value">{user.value.createdAt ? new Date(user.value.createdAt).toLocaleDateString() : 'N/A'}</span>
-                </div>
+                {isEditing.value ? (
+                  <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="margin-top: 1rem;">
+                      <button
+                        onClick={toggleEdit}
+                        style="width: 100%; text-align: center; background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer;"
+                      >
+                        Cancel Update
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem;">
+                      <span style="color: #64748b; font-size: 0.875rem; font-weight: 500;">Mobile</span>
+                      <span style="color: #0f172a; font-weight: 500;">{user.value.mobile || '—'}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem;">
+                      <span style="color: #64748b; font-size: 0.875rem; font-weight: 500;">Role</span>
+                      <span style="color: #0f172a; font-weight: 500; text-transform: capitalize;">{user.value.role || '—'}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem;">
+                      <span style="color: #64748b; font-size: 0.875rem; font-weight: 500;">Client</span>
+                      <span style="color: #0f172a; font-weight: 500;">{user.value.clientId?.businessName || '—'}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem;">
+                      <span style="color: #64748b; font-size: 0.875rem; font-weight: 500;">Verified</span>
+                      <span style="color: #0f172a; font-weight: 500;">{user.value.emailVerified ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                      <span style="color: #64748b; font-size: 0.875rem; font-weight: 500;">Joined</span>
+                      <span style="color: #0f172a; font-weight: 500;">{user.value.createdAt ? new Date(user.value.createdAt).toLocaleDateString() : '—'}</span>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           )}
@@ -111,389 +236,18 @@ export default {
           <style>{`
             .profile-page {
               min-height: 100vh;
-              background: #f5f5f5;
+              background: #f8fafc;
               padding: 0;
               width: 100%;
-              overflow-x: hidden;
+              font-family: 'Inter', sans-serif;
             }
-            
             .header {
               background: white;
-              padding: 1rem;
-              text-align: center;
-              border-bottom: 1px solid #eee;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             }
-            
-            .header h1 {
-              margin: 0;
-              font-size: 1.5rem;
-              color: #333;
-            }
-            
-            .tabs {
-              display: flex;
-              background: white;
-              border-bottom: 1px solid #eee;
-            }
-            
-            .tab {
-              flex: 1;
-              padding: 1rem;
-              border: none;
-              background: none;
-              color: #666;
-              font-size: 1rem;
-              cursor: pointer;
-              border-bottom: 2px solid transparent;
-            }
-            
-            .tab.active {
-              color: #333;
-              border-bottom-color: #007bff;
-            }
-            
-            .loading, .error {
-              text-align: center;
-              padding: 2rem;
-              color: #666;
-            }
-            
-            .error {
-              color: #e74c3c;
-            }
-            
-            .content {
-              padding: 1rem;
-              max-width: 100%;
-            }
-            
-            .profile-image-container {
-              display: flex;
-              justify-content: center;
-              margin-bottom: 2rem;
-            }
-            
-            .profile-placeholder {
-              width: 100px;
-              height: 100px;
-              border-radius: 50%;
-              background: #f1f5f9;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border: 3px solid white;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            }
-
-            .profile-image {
-              text-align: center;
-            }
-            
-            .profile-image img {
-              width: 100px;
-              height: 100px;
-              border-radius: 50%;
-              object-fit: cover;
-              border: 3px solid white;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
-            .section {
-              background: white;
-              margin-bottom: 1rem;
-              border-radius: 8px;
-              padding: 1rem;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-              width: 100%;
-              box-sizing: border-box;
-            }
-            
-            .section h3 {
-              margin: 0 0 1rem 0;
-              font-size: 1.1rem;
-              color: #333;
-              border-bottom: 1px solid #eee;
-              padding-bottom: 0.5rem;
-            }
-            
-            .field {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              padding: 0.75rem 0;
-              border-bottom: 1px solid #f5f5f5;
-              flex-wrap: wrap;
-              gap: 0.5rem;
-            }
-            
-            .field:last-child {
-              border-bottom: none;
-            }
-            
-            .label {
-              font-weight: 500;
-              color: #666;
-              min-width: 100px;
-              flex-shrink: 0;
-            }
-            
-            .value {
-              color: #333;
-              text-align: right;
-              word-break: break-word;
-              flex: 1;
-            }
-            
-            .karma {
-              text-align: center;
-              padding: 1rem;
-            }
-            
-            .points {
-              font-size: 2rem;
-              font-weight: bold;
-              color: #27ae60;
-              display: block;
-            }
-            
-            .karma-label {
-              margin: 0.5rem 0 0 0;
-              color: #666;
-              font-size: 0.9rem;
-            }
-            
-            .bonus-label {
-              margin: 0.25rem 0 0 0;
-              color: #27ae60;
-              font-size: 0.85rem;
-              font-weight: 500;
-            }
-            
-            .wallet-actions {
-              display: flex;
-              gap: 1rem;
-              flex-wrap: wrap;
-            }
-            
-            .action-btn {
-              flex: 1;
-              min-width: 120px;
-              padding: 0.75rem;
-              border: 1px solid #ddd;
-              background: white;
-              color: #333;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 0.9rem;
-            }
-            
-            .action-btn:hover {
-              background: #f8f9fa;
-            }
-            
-            .history-item {
-              display: flex;
-              gap: 1rem;
-              padding: 1rem 0;
-              border-bottom: 1px solid #f5f5f5;
-            }
-            
-            .history-item:last-child {
-              border-bottom: none;
-            }
-            
-            .history-image {
-              width: 60px;
-              height: 60px;
-              border-radius: 8px;
-              object-fit: cover;
-              flex-shrink: 0;
-            }
-            
-            .history-details {
-              flex: 1;
-            }
-            
-            .history-details h4 {
-              margin: 0 0 0.25rem 0;
-              font-size: 1rem;
-              color: #333;
-            }
-            
-            .history-category {
-              margin: 0 0 0.25rem 0;
-              font-size: 0.85rem;
-              color: #666;
-            }
-            
-            .history-points {
-              margin: 0 0 0.25rem 0;
-              font-size: 0.9rem;
-              color: #e74c3c;
-              font-weight: 600;
-            }
-            
-            .history-date {
-              margin: 0;
-              font-size: 0.8rem;
-              color: #999;
-            }
-            
-            .bonus-item {
-              padding: 1rem 0;
-              border-bottom: 1px solid #f5f5f5;
-            }
-            
-            .bonus-item:last-child {
-              border-bottom: none;
-            }
-            
-            .bonus-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 0.5rem;
-            }
-            
-            .bonus-amount {
-              font-size: 1.1rem;
-              font-weight: 600;
-              color: #27ae60;
-            }
-            
-            .bonus-date {
-              font-size: 0.8rem;
-              color: #999;
-            }
-            
-            .bonus-desc {
-              margin: 0 0 0.25rem 0;
-              font-size: 0.9rem;
-              color: #333;
-            }
-            
-            .bonus-by {
-              margin: 0 0 0.25rem 0;
-              font-size: 0.85rem;
-              color: #666;
-            }
-            
-            .bonus-balance {
-              margin: 0;
-              font-size: 0.8rem;
-              color: #999;
-            }
-            
-            /* Mobile Responsive Styles */
-            @media (max-width: 480px) {
-              .header {
-                padding: 0.75rem;
-              }
-              
-              .header h1 {
-                font-size: 1.25rem;
-              }
-              
-              .tab {
-                padding: 0.75rem 0.5rem;
-                font-size: 0.9rem;
-              }
-              
-              .content {
-                padding: 0.75rem;
-              }
-              
-              .section {
-                padding: 0.75rem;
-                margin-bottom: 0.75rem;
-              }
-              
-              .section h3 {
-                font-size: 1rem;
-              }
-              
-              .field {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 0.5rem 0;
-                gap: 0.25rem;
-              }
-              
-              .label {
-                min-width: auto;
-                font-size: 0.85rem;
-              }
-              
-              .value {
-                text-align: left;
-                font-size: 0.9rem;
-                font-weight: 500;
-              }
-              
-              .profile-image img {
-                width: 80px;
-                height: 80px;
-              }
-              
-              .points {
-                font-size: 1.75rem;
-              }
-              
-              .wallet-actions {
-                flex-direction: column;
-                gap: 0.75rem;
-              }
-              
-              .action-btn {
-                min-width: auto;
-                padding: 1rem;
-                font-size: 1rem;
-              }
-            }
-            
-            @media (max-width: 360px) {
-              .header {
-                padding: 0.5rem;
-              }
-              
-              .header h1 {
-                font-size: 1.1rem;
-              }
-              
-              .tab {
-                padding: 0.5rem 0.25rem;
-                font-size: 0.85rem;
-              }
-              
-              .content {
-                padding: 0.5rem;
-              }
-              
-              .section {
-                padding: 0.5rem;
-                margin-bottom: 0.5rem;
-              }
-              
-              .field {
-                padding: 0.4rem 0;
-              }
-              
-              .label {
-                font-size: 0.8rem;
-              }
-              
-              .value {
-                font-size: 0.85rem;
-              }
-              
-              .profile-image img {
-                width: 70px;
-                height: 70px;
-              }
-              
-              .points {
-                font-size: 1.5rem;
-              }
+            input:focus {
+              border-color: #3b82f6 !important;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
             }
           `}</style>
         </div>

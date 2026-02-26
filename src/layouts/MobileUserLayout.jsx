@@ -17,7 +17,8 @@ import {
   SparklesIcon,
   ChartBarIcon,
   VideoCameraIcon,
-  MoonIcon
+  MoonIcon,
+  UsersIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -185,7 +186,7 @@ export default {
               { id: 'voice', label: 'Voice', icon: MicrophoneIcon },
               { id: 'chat', label: 'Chat', icon: ChatBubbleLeftRightIcon },
               { id: 'profile', label: 'Profile', icon: UserIcon },
-              { id: 'user-chat', label: 'User Chat', icon: ChatBubbleLeftRightIcon }
+              { id: 'user-chat', label: 'Expert Chat', icon: UsersIcon }
             ].map(item => (
               <button
                 key={item.id}
@@ -326,13 +327,13 @@ export default {
           </header>
 
           <main style={{
-            padding: router.currentRoute.value.path.includes('cctv-surveillance') ? '0' : (isMobile.value ? '1rem' : '2rem'),
+            padding: (router.currentRoute.value.path.includes('cctv-surveillance') || router.currentRoute.value.path.includes('user-chat')) ? '0' : (isMobile.value ? '1rem' : '2rem'),
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            height: router.currentRoute.value.path.includes('cctv-surveillance') ? 'calc(100vh - 70px)' : 'auto',
+            height: (router.currentRoute.value.path.includes('cctv-surveillance') || router.currentRoute.value.path.includes('user-chat')) ? 'calc(100vh - 70px)' : 'auto',
             minHeight: 'calc(100vh - 70px)',
-            overflow: router.currentRoute.value.path.includes('cctv-surveillance') ? 'hidden' : 'visible'
+            overflow: (router.currentRoute.value.path.includes('cctv-surveillance') || router.currentRoute.value.path.includes('user-chat')) ? 'hidden' : 'visible'
           }}>
             <RouterView />
           </main>

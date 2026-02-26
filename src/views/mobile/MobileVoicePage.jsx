@@ -89,10 +89,12 @@ export default {
         connectionStatus.value = 'connecting';
 
         // Setup WebSocket connection
-        // Get base URL from environment and convert http to ws
-        const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-        const wsBaseUrl = baseUrl.replace(/^http/, 'ws');
-        const wsUrl = `${wsBaseUrl}/api/voice/agent`;
+        // Use VITE_WS_URL from env, or derive from window.location
+        const wsBase = import.meta.env.VITE_WS_URL
+          ? import.meta.env.VITE_WS_URL.replace(/^http/, 'ws')
+          : window.location.origin.replace(/^http/, 'ws');
+
+        const wsUrl = `${wsBase}/api/voice/agent`;
 
         addDebugLog(`Connecting to WebSocket: ${wsUrl}`);
         console.log('[VoiceAgent] Connecting to WebSocket:', wsUrl);

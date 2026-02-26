@@ -38,6 +38,15 @@ export default {
           localStorage.setItem('partner_data', JSON.stringify(data.data.partner));
           toast.success('Login successful!');
           router.push('/partner/dashboard');
+        } else if (data.data?.verificationStatus === 'pending' || data.data?.requiresApproval) {
+          // ⏳ Partner is pending approval
+          localStorage.setItem('partner_pending_email', loginForm.value.email);
+          toast.warning('Your account is waiting for approval. Redirecting...');
+          router.push('/partner/waiting-approval');
+        } else if (data.data?.verificationStatus === 'rejected') {
+          // ❌ Partner is rejected
+          const reason = data.data?.blockedReason || 'No reason provided.';
+          toast.error(`Account rejected: ${reason}`);
         } else {
           toast.error(data.message || 'Login failed');
         }

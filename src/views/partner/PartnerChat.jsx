@@ -249,6 +249,8 @@ export default {
 
           // Add to conversations
           const conversation = response.data;
+          conversation.otherUser = conversation.userId;
+          conversation.unreadCount = 0;
           conversations.value.unshift(conversation);
 
           // Switch to conversations tab
@@ -259,7 +261,7 @@ export default {
         }
       } catch (error) {
         console.error('❌ Error accepting request:', error);
-        alert(error.response?.data?.message || 'Failed to accept request');
+        alert(error.responseData?.message || error.message || 'Failed to accept request');
       }
     };
 
@@ -325,7 +327,7 @@ export default {
       try {
         const response = await api.getConversationMessages(conversationId);
         if (response && response.success) {
-          messages.value = (response.data && response.data.messages) || [];
+          messages.value = Array.isArray(response.data) ? response.data : ((response.data && response.data.messages) || []);
           if (response.data.sessionDetails) conversationDetails.value.sessionDetails = response.data.sessionDetails;
           if (response.data.rating) conversationDetails.value.rating = response.data.rating;
           console.log('✅ Loaded messages:', messages.value.length);
@@ -493,7 +495,7 @@ export default {
         await loadMessages(selectedConversation.value.conversationId);
       } catch (error) {
         console.error('❌ Error ending conversation:', error);
-        alert(error.response?.data?.message || 'Failed to end session');
+        alert(error.responseData?.message || error.message || 'Failed to end session');
       } finally {
         endModalSubmitting.value = false;
       }
@@ -524,7 +526,7 @@ export default {
         await loadMessages(selectedConversation.value.conversationId);
         showFeedbackModal.value = false;
       } catch (e) {
-        alert(e?.response?.data?.message || 'Failed to submit feedback');
+        alert(e?.responseData?.message || e?.message || 'Failed to submit feedback');
       } finally {
         endModalSubmitting.value = false;
       }
@@ -631,11 +633,11 @@ export default {
     });
 
     return () => (
-      <div style="display: flex; height: calc(100vh - 64px); background-color: #f9fafb;">
+      <div style="display: flex; height: 100%; gap: 20px;">
         {/* Sidebar */}
-        <div style="width: 360px; background-color: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;">
+        <div style="width: 300px; border-right: 1px solid #ddd; padding-right: 20px; display: flex; flex-direction: column;">
           {/* Header */}
-          <div style="padding: 20px; border-bottom: 1px solid #e5e7eb;">
+          <div style="margin-bottom: 20px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
               <h2 style="font-size: 20px; font-weight: 600; color: #111827; margin: 0;">
                 Chat Sessions
@@ -649,7 +651,7 @@ export default {
               <select
                 value={partnerInfo.value.status}
                 onChange={(e) => updateStatus(e.target.value)}
-                style="flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background-color: white; cursor: pointer;"
+                style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer; font-size: 14px;"
               >
                 <option value="online">🟢 Online</option>
                 <option value="busy">🟡 Busy</option>
@@ -658,143 +660,101 @@ export default {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div style="display: flex; border-bottom: 1px solid #e5e7eb;">
+          <div style="display: flex; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
             <button
               onClick={() => activeTab.value = 'conversations'}
-              style={`flex: 1; padding: 12px; border: none; background: none; cursor: pointer; font-weight: 500; ${activeTab.value === 'conversations'
-                ? 'color: #6366f1; border-bottom: 2px solid #6366f1;'
-                : 'color: #6b7280;'
-                }`}
+              style={`flex: 1; padding: 10px; border: none; font-size: 14px; cursor: pointer; transition: background-color 0.2s; border-radius: 8px 0 0 8px; border: 1px solid #eee; border-right: none; ${activeTab.value === 'conversations' ? 'background-color: #3498db; color: white; border-color: #3498db;' : 'background-color: white; color: #7f8c8d;'}`}
             >
-              Conversations
-              {unreadCount.value > 0 && (
-                <span style="margin-left: 8px; padding: 2px 6px; background-color: #ef4444; color: white; border-radius: 10px; font-size: 11px;">
-                  {unreadCount.value}
-                </span>
-              )}
+              Chats
+              {unreadCount.value > 0 && ` (${unreadCount.value})`}
             </button>
             <button
               onClick={() => activeTab.value = 'requests'}
-              style={`flex: 1; padding: 12px; border: none; background: none; cursor: pointer; font-weight: 500; ${activeTab.value === 'requests'
-                ? 'color: #6366f1; border-bottom: 2px solid #6366f1;'
-                : 'color: #6b7280;'
-                }`}
+              style={`flex: 1; padding: 10px; border: none; font-size: 14px; cursor: pointer; transition: background-color 0.2s; border-radius: 0 8px 8px 0; border: 1px solid #eee; ${activeTab.value === 'requests' ? 'background-color: #3498db; color: white; border-color: #3498db;' : 'background-color: white; color: #7f8c8d;'}`}
             >
               Requests
-              {pendingRequests.value.length > 0 && (
-                <span style="margin-left: 8px; padding: 2px 6px; background-color: #f59e0b; color: white; border-radius: 10px; font-size: 11px;">
-                  {pendingRequests.value.length}
-                </span>
-              )}
+              {pendingRequests.value.length > 0 && ` (${pendingRequests.value.length})`}
             </button>
           </div>
 
-          {/* List */}
           <div style="flex: 1; overflow-y: auto;">
             {activeTab.value === 'conversations' ? (
-              conversations.value.length === 0 ? (
-                <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
-                  <svg style="width: 48px; height: 48px; margin: 0 auto 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  <p>No active conversations</p>
-                </div>
+              loading.value && conversations.value.length === 0 ? (
+                <div style="padding: 20px; text-align: center; color: #7f8c8d;">Loading chats...</div>
+              ) : conversations.value.length === 0 ? (
+                <p style="color: #7f8c8d; font-size: 14px; text-align: center; margin-top: 20px;">No active chats</p>
               ) : (
                 conversations.value.map(conv => (
                   <div
                     key={conv.conversationId}
                     onClick={() => selectConversation(conv)}
-                    style={`padding: 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background-color 0.2s; ${selectedConversation.value?.conversationId === conv.conversationId
-                      ? 'background-color: #eef2ff;'
-                      : ''
-                      }`}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={(e) => {
-                      if (selectedConversation.value?.conversationId !== conv.conversationId) {
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }
+                    style={{
+                      padding: '12px',
+                      marginBottom: '8px',
+                      backgroundColor: selectedConversation.value?.conversationId === conv.conversationId ? '#e8f4f8' : 'white',
+                      border: selectedConversation.value?.conversationId === conv.conversationId ? '2px solid #3498db' : '1px solid #ddd',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
                     }}
                   >
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                      <div style="position: relative;">
-                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                          {conv.otherUser?.profile?.name?.charAt(0) || conv.otherUser?.email?.charAt(0) || 'U'}
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <div style={{ flexShrink: 0, width: 24, height: 24, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 10, overflow: 'hidden' }}>
+                          {conv.otherUser?.profileImage ? (
+                            <img src={conv.otherUser.profileImage} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            conv.otherUser?.profile?.name?.charAt(0)?.toUpperCase() || conv.otherUser?.email?.charAt(0)?.toUpperCase() || 'U'
+                          )}
                         </div>
-                        {conv.unreadCount > 0 && (
-                          <div style="position: absolute; top: -2px; right: -2px; width: 20px; height: 20px; background-color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600;">
-                            {conv.unreadCount}
-                          </div>
-                        )}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {conv.otherUser?.profile?.name || conv.otherUser?.email || 'User'}
+                        </span>
                       </div>
-                      <div style="flex: 1; min-width: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                          <p style="font-weight: 600; color: #111827; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            {conv.otherUser?.profile?.name || conv.otherUser?.email}
-                          </p>
-                          <span style="font-size: 12px; color: #6b7280;">
-                            {formatTime(conv.lastMessageAt)}
-                          </span>
-                        </div>
-                        {conv.status === 'ended' ? (
-                          <p style="font-size: 13px; color: #6b7280; margin: 0; font-style: italic;">Ended</p>
-                        ) : (
-                          <p style="font-size: 14px; color: #6b7280; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            {conv.lastMessage?.content || 'No messages yet'}
-                          </p>
-                        )}
+                      {conv.unreadCount > 0 && (
+                        <span style="background-color: #ef4444; color: white; border-radius: 50%; font-size: 10px; padding: 2px 6px;">{conv.unreadCount}</span>
+                      )}
+                    </div>
+                    {conv.lastMessage && (
+                      <div style="font-size: 12px; color: #7f8c8d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.content || '')}
                       </div>
+                    )}
+                    <div style="font-size: 10px; color: #95a5a6; margin-top: 4px;">
+                      {formatTime(conv.lastMessageAt || conv.updatedAt)}
                     </div>
                   </div>
                 ))
               )
             ) : (
               pendingRequests.value.length === 0 ? (
-                <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
-                  <svg style="width: 48px; height: 48px; margin: 0 auto 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p>No pending requests</p>
-                </div>
+                <p style="color: #7f8c8d; font-size: 14px; text-align: center; margin-top: 20px;">No pending requests</p>
               ) : (
                 pendingRequests.value.map(request => (
-                  <div
-                    key={request.conversationId}
-                    style="padding: 16px; border-bottom: 1px solid #f3f4f6; background-color: #fffbeb;"
-                  >
-                    <div style="display: flex; align-items: start; gap: 12px; margin-bottom: 12px;">
-                      <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                        {request.userId?.profile?.name?.charAt(0) || request.userId?.email?.charAt(0) || 'U'}
-                      </div>
-                      <div style="flex: 1;">
-                        <p style="font-weight: 600; color: #111827; margin: 0 0 4px 0;">
-                          {request.userId?.profile?.name || request.userId?.email}
-                        </p>
-                        <p style="font-size: 12px; color: #6b7280; margin: 0;">
-                          Requested {formatDate(request.createdAt)}
-                        </p>
-                      </div>
+                  <div key={request.conversationId} style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px; background-color: white;">
+                    <div style="font-weight: bold; margin-bottom: 4px;">
+                      {request.userId?.profile?.name || request.userId?.email || 'User'}
                     </div>
-
-
-
-
+                    <div style="font-size: 10px; color: #95a5a6; margin-bottom: 8px;">
+                      Requested {formatDate(request.createdAt)}
+                    </div>
+                    {request.aadhaarNumber && (
+                      <div style="font-size: 11px; color: #374151; margin-bottom: 8px; background: #f3f4f6; padding: 4px; border-radius: 4px; font-family: monospace;">
+                        <strong>Aadhaar:</strong> {request.aadhaarNumber.slice(0, 4)} {request.aadhaarNumber.slice(4, 8)} {request.aadhaarNumber.slice(8, 12)}
+                      </div>
+                    )}
                     <div style="display: flex; gap: 8px;">
                       <button
                         onClick={() => acceptRequest(request.conversationId)}
-                        style="flex: 1; padding: 10px; background-color: #10b981; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;"
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
+                        style="flex: 1; padding: 6px; background-color: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;"
                       >
-                        ✓ Accept
+                        Accept
                       </button>
                       <button
                         onClick={() => rejectRequest(request.conversationId)}
-                        style="flex: 1; padding: 10px; background-color: #ef4444; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;"
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                        style="flex: 1; padding: 6px; background-color: transparent; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 4px; font-size: 12px; cursor: pointer;"
                       >
-                        ✗ Reject
+                        Reject
                       </button>
                     </div>
                   </div>
@@ -805,22 +765,32 @@ export default {
         </div>
 
         {/* Chat Area */}
-        <div style="flex: 1; display: flex; flex-direction: column; background-color: #f9fafb;">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
           {selectedConversation.value ? (
             <>
               {/* Chat Header - Full user details */}
               <div style={{ padding: '16px 24px', background: 'white', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
-                  <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 18 }}>
-                    {selectedConversation.value.otherUser?.profile?.name?.charAt(0) || selectedConversation.value.otherUser?.email?.charAt(0) || 'U'}
+                  <div style={{ flexShrink: 0, width: 48, height: 48, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 18, overflow: 'hidden' }}>
+                    {selectedConversation.value.otherUser?.profileImage ? (
+                      <img src={selectedConversation.value.otherUser.profileImage} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      selectedConversation.value.otherUser?.profile?.name?.charAt(0)?.toUpperCase() || selectedConversation.value.otherUser?.email?.charAt(0)?.toUpperCase() || 'U'
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: 16 }}>
-                      {selectedConversation.value.otherUser?.profile?.name || selectedConversation.value.otherUser?.email}
+                      {selectedConversation.value.otherUser?.profile?.name || selectedConversation.value.otherUser?.email || 'User'}
                     </p>
                     <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
                       {selectedConversation.value.otherUser?.email}
                     </p>
+                    {selectedConversation.value.aadhaarNumber && (
+                      <p style={{ fontSize: 12, color: '#374151', margin: '4px 0 0', fontFamily: 'monospace', background: '#f3f4f6', padding: '2px 6px', borderRadius: 4, display: 'inline-block' }}>
+                        Aadhaar: {selectedConversation.value.aadhaarNumber}
+                      </p>
+                    )}
 
                     {isTyping.value && (
                       <p style={{ fontSize: 12, color: '#10b981', margin: '4px 0 0', fontWeight: 500 }}>typing...</p>
@@ -846,14 +816,14 @@ export default {
               {/* Messages */}
               <div
                 id="messages-container"
-                style="flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px;"
+                style={{ flex: 1, overflowY: 'auto', padding: '20px', backgroundColor: '#f5f5f5' }}
               >
                 {loading.value ? (
-                  <div style="text-align: center; padding: 40px;">
-                    <div style="width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #6366f1; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;" />
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+                    Loading...
                   </div>
                 ) : messages.value.length === 0 && selectedConversation.value.status !== 'ended' ? (
-                  <div style="text-align: center; padding: 40px; color: #6b7280;">
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
                     <p>No messages yet. Start the conversation!</p>
                   </div>
                 ) : (
@@ -873,20 +843,13 @@ export default {
                             </div>
                           )}
 
-                          <div style={`display: flex; ${isPartnerMessage ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}`}>
-                            <div style={`max-width: 70%; padding: 12px 16px; border-radius: 16px; ${isPartnerMessage
-                              ? 'background-color: #6366f1; color: white; border-bottom-right-radius: 4px;'
-                              : 'background-color: white; color: #111827; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);'
-                              }`}>
-                              <p style="margin: 0; word-wrap: break-word;">{message.content}</p>
-                              <div style={`display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11px; ${isPartnerMessage ? 'color: rgba(255,255,255,0.7); justify-content: flex-end;' : 'color: #9ca3af;'
-                                }`}>
+                          <div style={{ display: 'flex', marginBottom: '15px', justifyContent: isPartnerMessage ? 'flex-end' : 'flex-start' }}>
+                            <div style={{ maxWidth: '70%', padding: '12px 16px', borderRadius: '12px', backgroundColor: isPartnerMessage ? '#3498db' : '#ecf0f1', color: isPartnerMessage ? 'white' : '#2c3e50' }}>
+                              <p style={{ margin: 0, wordWrap: 'break-word' }}>{message.content}</p>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '11px', color: isPartnerMessage ? 'rgba(255,255,255,0.7)' : '#95a5a6', justifyContent: isPartnerMessage ? 'flex-end' : 'flex-start' }}>
                                 <span>{formatTime(message.createdAt)}</span>
                                 {isPartnerMessage && (
-                                  <span
-                                    style={message.isRead ? 'color:#22c55e;' : 'color:#e5e7eb;'}
-                                    title={message.isRead ? 'Read' : 'Sent'}
-                                  >
+                                  <span style={{ color: message.isRead ? '#fff' : 'rgba(255,255,255,0.7)' }} title={message.isRead ? 'Read' : 'Sent'}>
                                     {message.isRead ? '✔✔' : '✔'}
                                   </span>
                                 )}
@@ -969,23 +932,23 @@ export default {
               </div>
 
               {/* Message Input / Ended actions */}
-              <div style="padding: 16px 24px; background-color: white; border-top: 1px solid #e5e7eb;">
+              <div style={{ padding: '20px', borderTop: '1px solid #ddd', display: 'flex', gap: '10px', background: 'white' }}>
                 {selectedConversation.value.status === 'ended' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {!hasPartnerSubmittedFeedback.value && (
                       <button onClick={openFeedbackModal}
-                        style={{ padding: '12px 20px', backgroundColor: '#6366f1', color: 'white', border: 'none', borderRadius: 8, fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>
+                        style={{ padding: '12px 20px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 8, fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>
                         Add your feedback
                       </button>
                     )}
-                    <p style={{ margin: 0, fontSize: 14, color: '#6b7280' }}>This consultation has ended.</p>
+                    <p style={{ margin: 0, fontSize: 14, color: '#7f8c8d' }}>This consultation has ended.</p>
                   </div>
                 ) : selectedConversation.value.status === 'pending' ? (
-                  <div style="text-align: center; padding: 12px; background-color: #fef3c7; border-radius: 8px; color: #92400e; font-size: 14px;">
+                  <div style={{ textAlign: 'center', padding: '12px', flex: 1, backgroundColor: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '14px' }}>
                     Please accept the conversation request to enable messaging
                   </div>
                 ) : (
-                  <div style="display: flex; gap: 12px; align-items: center;">
+                  <>
                     <input
                       type="text"
                       value={newMessage.value}
@@ -993,264 +956,253 @@ export default {
                         newMessage.value = e.target.value;
                         startTyping();
                       }}
-                      onKeypress={(e) => {
+                      onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           sendMessage();
                         }
                       }}
                       placeholder="Type your message..."
-                      style="flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 24px; outline: none; font-size: 14px;"
+                      style={{ flex: 1, padding: '12px', border: '1px solid #ddd', borderRadius: '8px', outline: 'none', fontSize: '16px' }}
                     />
                     <button
                       onClick={sendMessage}
                       disabled={!newMessage.value.trim()}
-                      style={`padding: 12px 24px; background-color: #6366f1; color: white; border: none; border-radius: 24px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; ${!newMessage.value.trim() ? 'opacity: 0.5; cursor: not-allowed;' : ''
-                        }`}
-                      onMouseEnter={(e) => {
-                        if (newMessage.value.trim()) {
-                          e.currentTarget.style.backgroundColor = '#4f46e5';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (newMessage.value.trim()) {
-                          e.currentTarget.style.backgroundColor = '#6366f1';
-                        }
-                      }}
+                      style={{ padding: '12px 24px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: !newMessage.value.trim() ? 'not-allowed' : 'pointer', opacity: !newMessage.value.trim() ? 0.6 : 1 }}
                     >
                       Send
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
             </>
           ) : (
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280;">
-              <div style="text-align: center;">
-                <svg style="width: 64px; height: 64px; margin: 0 auto 16px; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <p style="font-size: 18px; font-weight: 600; margin: 0 0 8px 0;">No conversation selected</p>
-                <p style="font-size: 14px;">Select a conversation or accept a request to start chatting</p>
-              </div>
+            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <svg style={{ width: '64px', height: '64px', margin: '0 auto 16px', color: '#d1d5db' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <p>Select a chat or accept a request to start chatting.</p>
             </div>
           )}
         </div>
 
         {/* End Session Modal - polished card design */}
-        {showEndModal.value && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(15,23,42,0.65)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: 24
-            }}
-            onClick={closeEndModal}
-          >
+        {
+          showEndModal.value && (
             <div
               style={{
-                background: 'linear-gradient(180deg, #ffffff 0%, #fafbff 100%)',
-                borderRadius: 20,
-                maxWidth: 460,
-                width: '100%',
-                overflow: 'hidden',
-                boxShadow: '0 32px 64px -12px rgba(99,102,241,0.15), 0 0 0 1px rgba(99,102,241,0.08), 0 20px 40px -20px rgba(0,0,0,0.12)'
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(15,23,42,0.65)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+                padding: 24
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={closeEndModal}
             >
-              <div style={{
-                padding: '28px 28px 24px',
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)',
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-                <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-                <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', position: 'relative' }}>End Consultation</h3>
-                <p style={{ color: 'rgba(255,255,255,0.9)', margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, position: 'relative' }}>Share your experience before closing this session.</p>
-              </div>
-              <div style={{ padding: '28px 28px 28px' }}>
+              <div
+                style={{
+                  background: 'linear-gradient(180deg, #ffffff 0%, #fafbff 100%)',
+                  borderRadius: 20,
+                  maxWidth: 460,
+                  width: '100%',
+                  overflow: 'hidden',
+                  boxShadow: '0 32px 64px -12px rgba(99,102,241,0.15), 0 0 0 1px rgba(99,102,241,0.08), 0 20px 40px -20px rgba(0,0,0,0.12)'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div style={{
-                  marginBottom: 24,
-                  padding: '18px 20px',
-                  background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%)',
-                  borderRadius: 14,
-                  border: '1px solid rgba(99,102,241,0.2)'
+                  padding: '28px 28px 24px',
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)',
+                  color: 'white',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#4f46e5', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Session Summary</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 16, color: '#1e293b', fontWeight: 600 }}>⏱ {sessionSummary.value.duration} min</span>
-                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#94a3b8' }} />
-                    <span style={{ fontSize: 16, color: '#1e293b', fontWeight: 600 }}>💬 {sessionSummary.value.messagesCount} messages</span>
+                  <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+                  <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+                  <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', position: 'relative' }}>End Consultation</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.9)', margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, position: 'relative' }}>Share your experience before closing this session.</p>
+                </div>
+                <div style={{ padding: '28px 28px 28px' }}>
+                  <div style={{
+                    marginBottom: 24,
+                    padding: '18px 20px',
+                    background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%)',
+                    borderRadius: 14,
+                    border: '1px solid rgba(99,102,241,0.2)'
+                  }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#4f46e5', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Session Summary</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 16, color: '#1e293b', fontWeight: 600 }}>⏱ {sessionSummary.value.duration} min</span>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#94a3b8' }} />
+                      <span style={{ fontSize: 16, color: '#1e293b', fontWeight: 600 }}>💬 {sessionSummary.value.messagesCount} messages</span>
+                    </div>
                   </div>
-                </div>
-                <div style={{ marginBottom: 22 }}>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 12 }}>Rating (1–5 stars) <span style={{ color: '#ef4444' }}>*</span></label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button key={n} type="button" onClick={() => endFeedbackStars.value = n}
-                        style={{
-                          width: 44, height: 44, borderRadius: 12, border: 'none',
-                          background: endFeedbackStars.value >= n ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
-                          color: endFeedbackStars.value >= n ? 'white' : '#94a3b8', cursor: 'pointer', fontSize: 20,
-                          boxShadow: endFeedbackStars.value >= n ? '0 4px 12px rgba(245,158,11,0.35)' : '0 1px 3px rgba(0,0,0,0.06)',
-                          transition: 'transform 0.15s, box-shadow 0.15s'
-                        }}
-                        onMouseEnter={(e) => { if (endFeedbackStars.value < n) { e.currentTarget.style.transform = 'scale(1.05)'; } }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                      >★</button>
-                    ))}
+                  <div style={{ marginBottom: 22 }}>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 12 }}>Rating (1–5 stars) <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} type="button" onClick={() => endFeedbackStars.value = n}
+                          style={{
+                            width: 44, height: 44, borderRadius: 12, border: 'none',
+                            background: endFeedbackStars.value >= n ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                            color: endFeedbackStars.value >= n ? 'white' : '#94a3b8', cursor: 'pointer', fontSize: 20,
+                            boxShadow: endFeedbackStars.value >= n ? '0 4px 12px rgba(245,158,11,0.35)' : '0 1px 3px rgba(0,0,0,0.06)',
+                            transition: 'transform 0.15s, box-shadow 0.15s'
+                          }}
+                          onMouseEnter={(e) => { if (endFeedbackStars.value < n) { e.currentTarget.style.transform = 'scale(1.05)'; } }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        >★</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div style={{ marginBottom: 22 }}>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Feedback (optional)</label>
-                  <textarea value={endFeedbackText.value} onInput={(e) => endFeedbackText.value = e.target.value} placeholder="Share your experience..."
-                    rows={3} style={{ width: '100%', padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ marginBottom: 28 }}>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Satisfaction</label>
-                  <select value={endFeedbackSatisfaction.value} onChange={(e) => endFeedbackSatisfaction.value = e.target.value}
-                    style={{ width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, backgroundColor: 'white', color: '#334155', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <option value="">Select how you feel...</option>
-                    <option value="very_happy">😊 Very Happy</option>
-                    <option value="happy">🙂 Happy</option>
-                    <option value="neutral">😐 Neutral</option>
-                    <option value="unhappy">😕 Unhappy</option>
-                    <option value="very_unhappy">😞 Very Unhappy</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <button onClick={closeEndModal}
-                    style={{ flex: 1, padding: 15, backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 12, fontWeight: 600, cursor: 'pointer', fontSize: 15 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; e.currentTarget.style.color = '#334155'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#475569'; }}
-                  >Cancel</button>
-                  <button onClick={endConversation} disabled={endModalSubmitting.value || endFeedbackStars.value < 1}
-                    style={{
-                      flex: 1, padding: 15,
-                      background: (endModalSubmitting.value || endFeedbackStars.value < 1) ? '#94a3b8' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
-                      color: 'white', border: 'none', borderRadius: 12, fontWeight: 600, cursor: (endModalSubmitting.value || endFeedbackStars.value < 1) ? 'not-allowed' : 'pointer', fontSize: 15,
-                      boxShadow: (endModalSubmitting.value || endFeedbackStars.value < 1) ? 'none' : '0 4px 16px rgba(239,68,68,0.4)'
-                    }}
-                  >{endModalSubmitting.value ? 'Ending...' : (endFeedbackStars.value < 1 ? 'Give rating to end' : 'End Consultation')}</button>
+                  <div style={{ marginBottom: 22 }}>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Feedback (optional)</label>
+                    <textarea value={endFeedbackText.value} onInput={(e) => endFeedbackText.value = e.target.value} placeholder="Share your experience..."
+                      rows={3} style={{ width: '100%', padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ marginBottom: 28 }}>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Satisfaction</label>
+                    <select value={endFeedbackSatisfaction.value} onChange={(e) => endFeedbackSatisfaction.value = e.target.value}
+                      style={{ width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, backgroundColor: 'white', color: '#334155', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <option value="">Select how you feel...</option>
+                      <option value="very_happy">😊 Very Happy</option>
+                      <option value="happy">🙂 Happy</option>
+                      <option value="neutral">😐 Neutral</option>
+                      <option value="unhappy">😕 Unhappy</option>
+                      <option value="very_unhappy">😞 Very Unhappy</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 14 }}>
+                    <button onClick={closeEndModal}
+                      style={{ flex: 1, padding: 15, backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 12, fontWeight: 600, cursor: 'pointer', fontSize: 15 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; e.currentTarget.style.color = '#334155'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#475569'; }}
+                    >Cancel</button>
+                    <button onClick={endConversation} disabled={endModalSubmitting.value || endFeedbackStars.value < 1}
+                      style={{
+                        flex: 1, padding: 15,
+                        background: (endModalSubmitting.value || endFeedbackStars.value < 1) ? '#94a3b8' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
+                        color: 'white', border: 'none', borderRadius: 12, fontWeight: 600, cursor: (endModalSubmitting.value || endFeedbackStars.value < 1) ? 'not-allowed' : 'pointer', fontSize: 15,
+                        boxShadow: (endModalSubmitting.value || endFeedbackStars.value < 1) ? 'none' : '0 4px 16px rgba(239,68,68,0.4)'
+                      }}
+                    >{endModalSubmitting.value ? 'Ending...' : (endFeedbackStars.value < 1 ? 'Give rating to end' : 'End Consultation')}</button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        }
         {/* Add Feedback Modal - polished card design */}
-        {showFeedbackModal.value && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(15,23,42,0.65)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: 24
-            }}
-            onClick={() => showFeedbackModal.value = false}
-          >
+        {
+          showFeedbackModal.value && (
             <div
               style={{
-                background: 'linear-gradient(180deg, #ffffff 0%, #fafbff 100%)',
-                borderRadius: 20,
-                maxWidth: 460,
-                width: '100%',
-                overflow: 'hidden',
-                boxShadow: '0 32px 64px -12px rgba(99,102,241,0.15), 0 0 0 1px rgba(99,102,241,0.08), 0 20px 40px -20px rgba(0,0,0,0.12)'
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(15,23,42,0.65)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+                padding: 24
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={() => showFeedbackModal.value = false}
             >
-              <div style={{
-                padding: '28px 28px 24px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #7c3aed 100%)',
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-                <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', position: 'relative' }}>Add Your Feedback</h3>
-                <p style={{ color: 'rgba(255,255,255,0.9)', margin: '10px 0 0', fontSize: 14, position: 'relative' }}>Your feedback helps us improve.</p>
-              </div>
-              <div style={{ padding: '28px 28px 28px' }}>
-                <div style={{ marginBottom: 22 }}>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 12 }}>Rating</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button key={n} type="button" onClick={() => endFeedbackStars.value = n}
-                        style={{
-                          width: 44, height: 44, borderRadius: 12, border: 'none',
-                          background: endFeedbackStars.value >= n ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
-                          color: endFeedbackStars.value >= n ? 'white' : '#94a3b8', cursor: 'pointer', fontSize: 20,
-                          boxShadow: endFeedbackStars.value >= n ? '0 4px 12px rgba(245,158,11,0.35)' : '0 1px 3px rgba(0,0,0,0.06)',
-                          transition: 'transform 0.15s, box-shadow 0.15s'
-                        }}
-                        onMouseEnter={(e) => { if (endFeedbackStars.value < n) { e.currentTarget.style.transform = 'scale(1.05)'; } }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                      >★</button>
-                    ))}
+              <div
+                style={{
+                  background: 'linear-gradient(180deg, #ffffff 0%, #fafbff 100%)',
+                  borderRadius: 20,
+                  maxWidth: 460,
+                  width: '100%',
+                  overflow: 'hidden',
+                  boxShadow: '0 32px 64px -12px rgba(99,102,241,0.15), 0 0 0 1px rgba(99,102,241,0.08), 0 20px 40px -20px rgba(0,0,0,0.12)'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{
+                  padding: '28px 28px 24px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #7c3aed 100%)',
+                  color: 'white',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+                  <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', position: 'relative' }}>Add Your Feedback</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.9)', margin: '10px 0 0', fontSize: 14, position: 'relative' }}>Your feedback helps us improve.</p>
+                </div>
+                <div style={{ padding: '28px 28px 28px' }}>
+                  <div style={{ marginBottom: 22 }}>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 12 }}>Rating</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} type="button" onClick={() => endFeedbackStars.value = n}
+                          style={{
+                            width: 44, height: 44, borderRadius: 12, border: 'none',
+                            background: endFeedbackStars.value >= n ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                            color: endFeedbackStars.value >= n ? 'white' : '#94a3b8', cursor: 'pointer', fontSize: 20,
+                            boxShadow: endFeedbackStars.value >= n ? '0 4px 12px rgba(245,158,11,0.35)' : '0 1px 3px rgba(0,0,0,0.06)',
+                            transition: 'transform 0.15s, box-shadow 0.15s'
+                          }}
+                          onMouseEnter={(e) => { if (endFeedbackStars.value < n) { e.currentTarget.style.transform = 'scale(1.05)'; } }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        >★</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div style={{ marginBottom: 22 }}>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Feedback (optional)</label>
-                  <textarea value={endFeedbackText.value} onInput={(e) => endFeedbackText.value = e.target.value} placeholder="Share your experience..."
-                    rows={3} style={{ width: '100%', padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ marginBottom: 28 }}>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Satisfaction</label>
-                  <select value={endFeedbackSatisfaction.value} onChange={(e) => endFeedbackSatisfaction.value = e.target.value}
-                    style={{ width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, backgroundColor: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <option value="">Select how you feel...</option>
-                    <option value="very_happy">😊 Very Happy</option>
-                    <option value="happy">🙂 Happy</option>
-                    <option value="neutral">😐 Neutral</option>
-                    <option value="unhappy">😕 Unhappy</option>
-                    <option value="very_unhappy">😞 Very Unhappy</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: 14 }}>
-                  <button onClick={() => showFeedbackModal.value = false}
-                    style={{ flex: 1, padding: 15, backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 12, fontWeight: 600, cursor: 'pointer', fontSize: 15 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; e.currentTarget.style.color = '#334155'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#475569'; }}
-                  >Cancel</button>
-                  <button onClick={submitFeedbackOnly} disabled={endModalSubmitting.value}
-                    style={{
-                      flex: 1, padding: 15,
-                      background: endModalSubmitting.value ? '#94a3b8' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #7c3aed 100%)',
-                      color: 'white', border: 'none', borderRadius: 12, fontWeight: 600, cursor: endModalSubmitting.value ? 'not-allowed' : 'pointer', fontSize: 15,
-                      boxShadow: endModalSubmitting.value ? 'none' : '0 4px 16px rgba(99,102,241,0.4)'
-                    }}
-                  >{endModalSubmitting.value ? 'Submitting...' : 'Submit Feedback'}</button>
+                  <div style={{ marginBottom: 22 }}>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Feedback (optional)</label>
+                    <textarea value={endFeedbackText.value} onInput={(e) => endFeedbackText.value = e.target.value} placeholder="Share your experience..."
+                      rows={3} style={{ width: '100%', padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ marginBottom: 28 }}>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 10 }}>Satisfaction</label>
+                    <select value={endFeedbackSatisfaction.value} onChange={(e) => endFeedbackSatisfaction.value = e.target.value}
+                      style={{ width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 14, backgroundColor: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <option value="">Select how you feel...</option>
+                      <option value="very_happy">😊 Very Happy</option>
+                      <option value="happy">🙂 Happy</option>
+                      <option value="neutral">😐 Neutral</option>
+                      <option value="unhappy">😕 Unhappy</option>
+                      <option value="very_unhappy">😞 Very Unhappy</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 14 }}>
+                    <button onClick={() => showFeedbackModal.value = false}
+                      style={{ flex: 1, padding: 15, backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 12, fontWeight: 600, cursor: 'pointer', fontSize: 15 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; e.currentTarget.style.color = '#334155'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#475569'; }}
+                    >Cancel</button>
+                    <button onClick={submitFeedbackOnly} disabled={endModalSubmitting.value}
+                      style={{
+                        flex: 1, padding: 15,
+                        background: endModalSubmitting.value ? '#94a3b8' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #7c3aed 100%)',
+                        color: 'white', border: 'none', borderRadius: 12, fontWeight: 600, cursor: endModalSubmitting.value ? 'not-allowed' : 'pointer', fontSize: 15,
+                        boxShadow: endModalSubmitting.value ? 'none' : '0 4px 16px rgba(99,102,241,0.4)'
+                      }}
+                    >{endModalSubmitting.value ? 'Submitting...' : 'Submit Feedback'}</button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* User Complete Details Modal - Astrology, Numerology, Doshas, Remedies, Panchang */}
 
-
         <style>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+      </div >
     );
   }
 };

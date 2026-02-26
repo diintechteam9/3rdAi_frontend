@@ -2,21 +2,11 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ChatBubbleLeftRightIcon,
-  UserIcon,
-  PaintBrushIcon,
-  BellIcon,
-  GiftIcon,
-  SpeakerWaveIcon,
   ChartBarIcon,
-  StarIcon,
-  TicketIcon,
+  BellIcon,
+  SpeakerWaveIcon,
   ArrowRightIcon,
-  ClockIcon,
-  BuildingOffice2Icon,
-  VideoCameraIcon,
-  FilmIcon,
-  BookOpenIcon,
-  MoonIcon
+  MicrophoneIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -36,51 +26,6 @@ export default {
       },
       {
         id: 2,
-        name: 'Founder Message',
-        icon: UserIcon,
-        description: 'Create personalized messages from company leadership',
-        route: '/client/tools/founder-message',
-        color: '#8b5cf6',
-        category: 'Content'
-      },
-      {
-        id: 3,
-        name: 'Branding',
-        icon: PaintBrushIcon,
-        description: 'Manage brand assets, colors, and visual identity',
-        route: '/client/tools/branding',
-        color: '#f59e0b',
-        category: 'Design'
-      },
-      {
-        id: 4,
-        name: 'Push Notifications',
-        icon: BellIcon,
-        description: 'Send targeted notifications to engage users',
-        route: '/client/tools/push-notification',
-        color: '#ef4444',
-        category: 'Communication'
-      },
-      {
-        id: 5,
-        name: 'Offers & Promotions',
-        icon: GiftIcon,
-        description: 'Create and manage special offers and discounts',
-        route: '/client/tools/offers',
-        color: '#ec4899',
-        category: 'Marketing'
-      },
-      {
-        id: 6,
-        name: 'Advertisement',
-        icon: SpeakerWaveIcon,
-        description: 'Design and launch advertising campaigns',
-        route: '/client/tools/advertisement',
-        color: '#06b6d4',
-        category: 'Marketing'
-      },
-      {
-        id: 7,
         name: 'Customer Survey',
         icon: ChartBarIcon,
         description: 'Gather feedback through customizable surveys',
@@ -89,40 +34,31 @@ export default {
         category: 'Analytics'
       },
       {
-        id: 8,
-        name: 'Rating System',
-        icon: StarIcon,
-        description: 'Manage customer ratings and review system',
-        route: '/client/tools/rating',
+        id: 3,
+        name: 'Alerts',
+        icon: BellIcon,
+        description: 'Partners ko targeted alerts aur notifications bhejein',
+        route: '/client/tools/alerts',
+        color: '#ef4444',
+        category: 'Communication'
+      },
+      {
+        id: 4,
+        name: 'Announcements',
+        icon: SpeakerWaveIcon,
+        description: 'Partners ke liye announcements aur updates publish karein',
+        route: '/client/tools/announcements',
+        color: '#8b5cf6',
+        category: 'Communication'
+      },
+      {
+        id: 5,
+        name: 'AI Voice Agent',
+        icon: MicrophoneIcon,
+        description: 'Engage with the real-time AI Voice Assistant',
+        route: '/client/tools/voice',
         color: '#f59e0b',
-        category: 'Analytics'
-      },
-      {
-        id: 10,
-        name: 'Support Tickets',
-        icon: TicketIcon,
-        description: 'Handle customer support requests efficiently',
-        route: '/client/tools/tickets',
-        color: '#6366f1',
-        category: 'Support'
-      },
-      {
-        id: 11,
-        name: 'Sponsors',
-        icon: BuildingOffice2Icon,
-        description: 'Manage sponsorship partnerships and collaborations',
-        route: '/client/tools/sponsors',
-        color: '#7c3aed',
-        category: 'Marketing'
-      },
-      {
-        id: 11,
-        name: 'Sponsors',
-        icon: BuildingOffice2Icon,
-        description: 'Manage sponsorship partnerships and collaborations',
-        route: '/client/tools/sponsors',
-        color: '#7c3aed',
-        category: 'Marketing'
+        category: 'AI Services'
       }
     ];
 
@@ -133,12 +69,8 @@ export default {
     const getCategoryBadgeColor = (category) => {
       const colors = {
         'Marketing': 'bg-success',
-        'Content': 'bg-info',
-        'Design': 'bg-warning',
-        'Communication': 'bg-danger',
         'Analytics': 'bg-primary',
-        'Support': 'bg-secondary',
-        'Spiritual': 'bg-warning'
+        'Communication': 'bg-danger'
       };
       return colors[category] || 'bg-secondary';
     };
@@ -179,7 +111,7 @@ export default {
         `}</style>
         <div class="row">
           <div class="col-12">
-            {/* Header Section */}
+            {/* Header */}
             <div class="mb-5">
               <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>
@@ -244,11 +176,9 @@ export default {
                         </p>
                       </div>
 
-                      {/* Action Button */}
+                      {/* Action */}
                       <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center text-muted" style={{ fontSize: '0.85rem' }}>
-                          <span>Click to access</span>
-                        </div>
+                        <span class="text-muted" style={{ fontSize: '0.85rem' }}>Click to access</span>
                         <div
                           class="arrow-btn d-flex align-items-center justify-content-center rounded-circle"
                           style={{
@@ -263,7 +193,7 @@ export default {
                       </div>
                     </div>
 
-                    {/* Hover Effect Overlay */}
+                    {/* Hover Overlay */}
                     <div
                       class="hover-overlay position-absolute top-0 start-0 w-100 h-100"
                       style={{
@@ -271,24 +201,10 @@ export default {
                         pointerEvents: 'none',
                         borderRadius: '16px'
                       }}
-                    ></div>
+                    />
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Footer Info */}
-            <div class="mt-5 pt-4 border-top">
-              <div class="row align-items-center">
-                <div class="col-md-8">
-                  <p class="text-muted mb-0">
-                    <strong>Need help?</strong> Contact our support team for assistance with any of these tools.
-                  </p>
-                </div>
-                <div class="col-md-4 text-md-end">
-                  <small class="text-muted">Last updated: {new Date().toLocaleDateString()}</small>
-                </div>
-              </div>
             </div>
           </div>
         </div>

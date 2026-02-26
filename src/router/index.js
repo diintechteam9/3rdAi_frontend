@@ -28,6 +28,12 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: '/partner/waiting-approval',
+    name: 'PartnerWaitingApproval',
+    component: () => import('../views/partner/PartnerWaitingApproval.jsx')
+    // No auth needed — public waiting page
+  },
+  {
     path: '/partner/dashboard',
     name: 'PartnerDashboard',
     component: () => import('../views/partner/PartnerDashboard.jsx'),
@@ -164,6 +170,11 @@ const routes = [
       },
 
 
+      {
+        path: 'voice',
+        name: 'MobileVoicePage',
+        component: () => import('../views/mobile/MobileVoicePage.jsx')
+      },
       {
         path: 'brahma-bazar',
         name: 'MobileBrahmaBazar',
@@ -313,7 +324,11 @@ const routes = [
         name: 'AdminAIAgents',
         component: () => import('../views/admin/AIAgents.jsx')
       },
-
+      {
+        path: 'chat',
+        name: 'AdminChat',
+        component: () => import('../views/user/UserChat.jsx')
+      }
     ]
   },
 
@@ -341,18 +356,12 @@ const routes = [
         name: 'ClientUsers',
         component: () => import('../views/client/Users.jsx')
       },
-
-
       {
-        path: 'settings',
-        name: 'ClientSettings',
-        component: () => import('../views/client/Settings.jsx')
+        path: 'partner-approvals',
+        name: 'ClientPartnerApprovals',
+        component: () => import('../views/client/PartnerApprovals.jsx')
       },
-      {
-        path: 'payments',
-        name: 'ClientPayments',
-        component: () => import('../views/client/Payments.jsx')
-      },
+
       {
         path: 'support',
         name: 'ClientSupport',
@@ -381,41 +390,15 @@ const routes = [
       },
 
       {
-        path: 'brahma-bazar',
-        name: 'ClientBrahmaBazar',
-        component: () => import('../views/client/services/BrahmaBazar.jsx')
-      },
-      {
         path: 'tools',
         name: 'ClientTools',
         component: () => import('../views/client/Tools.jsx')
       },
       // Client Tools
-
-      {
-        path: 'tools/branding',
-        name: 'Branding',
-        component: () => import('../views/client/tools/Branding.jsx')
-      },
-      {
-        path: 'tools/founder-message',
-        name: 'FounderMessage',
-        component: () => import('../views/client/tools/FounderMessage.jsx')
-      },
       {
         path: 'tools/testimonial',
         name: 'Testimonial',
         component: () => import('../views/client/tools/Testimonial.jsx')
-      },
-      {
-        path: 'tools/sponsors',
-        name: 'Sponsors',
-        component: () => import('../views/client/tools/Sponsors.jsx')
-      },
-      {
-        path: 'tools/rating',
-        name: 'Rating',
-        component: () => import('../views/client/tools/Rating.jsx')
       },
       {
         path: 'tools/survey',
@@ -423,40 +406,25 @@ const routes = [
         component: () => import('../views/client/tools/Survey.jsx')
       },
       {
-        path: 'tools/tickets',
-        name: 'Tickets',
-        component: () => import('../views/client/tools/Tickets.jsx')
+        path: 'tools/alerts',
+        name: 'AlertsManager',
+        component: () => import('../views/client/tools/AlertsManager.jsx')
       },
       {
-        path: 'tools/offers',
-        name: 'Offers',
-        component: () => import('../views/client/tools/Offers.jsx')
+        path: 'tools/announcements',
+        name: 'AnnouncementsManager',
+        component: () => import('../views/client/tools/AnnouncementsManager.jsx')
       },
       {
-        path: 'tools/advertisement',
-        name: 'Advertisement',
-        component: () => import('../views/client/tools/Advertisement.jsx')
-      },
-      {
-        path: 'tools/push-notification',
-        name: 'PushNotification',
-        component: () => import('../views/client/tools/PushNotification.jsx')
-      },
-      {
-        path: 'tools/push-notification',
-        name: 'PushNotification',
-        component: () => import('../views/client/tools/PushNotification.jsx')
+        path: 'tools/voice',
+        name: 'ClientVoicePage',
+        component: () => import('../views/mobile/MobileVoicePage.jsx')
       },
 
       // Client Services
 
 
-      // Client Services
-      {
-        path: 'services/brahma-bazar',
-        name: 'BrahmaBazar',
-        component: () => import('../views/client/services/BrahmaBazar.jsx')
-      },
+
 
       // Client Activity
 

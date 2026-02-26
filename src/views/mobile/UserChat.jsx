@@ -28,6 +28,7 @@ export default {
     const endModalSubmitting = ref(false);
     const conversationDetails = ref({ sessionDetails: null, rating: null }); // From messages API when ended
     const fullPartnerDetails = ref(null); // Fetched from API for complete DB fields
+    const aadhaarNumber = ref(''); // User's Aadhaar proof
 
 
 
@@ -319,12 +320,17 @@ export default {
     const createConversationRequest = async () => {
       if (!selectedPartner.value) return;
 
+      if (!aadhaarNumber.value || aadhaarNumber.value.length < 12) {
+        alert('Please enter a valid 12-digit Aadhaar Number to proceed.');
+        return;
+      }
+
       try {
         loading.value = true;
 
-
         const response = await api.createConversation({
-          partnerId: selectedPartner.value._id
+          partnerId: selectedPartner.value._id,
+          aadhaarNumber: aadhaarNumber.value
         });
 
         if (response && response.success) {
@@ -339,15 +345,14 @@ export default {
 
           // Hide form
           showPartnersList.value = false;
-
-
+          aadhaarNumber.value = ''; // Reset after successful submission
 
           // Show notification
-          alert('Consultation request sent! Waiting for partner to accept.');
+          alert('Chat request sent! Waiting for police officer to accept.');
         }
       } catch (error) {
         console.error('❌ Error creating conversation:', error);
-        alert(error.response?.data?.message || 'Failed to create conversation request');
+        alert(error.response?.data?.message || 'Failed to create chat request');
       } finally {
         loading.value = false;
       }
@@ -406,7 +411,7 @@ export default {
       try {
         const response = await api.getConversationMessages(conversationId);
         if (response && response.success) {
-          messages.value = (response.data && response.data.messages) || [];
+          messages.value = Array.isArray(response.data) ? response.data : ((response.data && response.data.messages) || []);
           if (response.data.sessionDetails) conversationDetails.value.sessionDetails = response.data.sessionDetails;
           if (response.data.rating) conversationDetails.value.rating = response.data.rating;
           console.log('✅ Loaded messages:', messages.value.length);
@@ -518,7 +523,7 @@ export default {
       }
     };
 
-    // Open end consultation modal
+    // Open end session modal
     const openEndModal = () => {
       if (!selectedConversation.value || selectedConversation.value.status === 'ended') return;
       endFeedbackStars.value = 0;
@@ -570,7 +575,7 @@ export default {
         await loadMessages(selectedConversation.value.conversationId);
       } catch (error) {
         console.error('❌ Error ending conversation:', error);
-        alert(error.response?.data?.message || 'Failed to end consultation');
+        alert(error.response?.data?.message || 'Failed to end session');
       } finally {
         endModalSubmitting.value = false;
       }
@@ -608,42 +613,7 @@ export default {
       }
     };
 
-    // Render partner details in neat rows (no card)
-    const renderPartnerDetailsPanel = (p) => {
-      if (!p) return <p style={{ margin: 0, fontSize: 13, color: '#9ca3af' }}>Loading...</p>;
-      const items = [
-        ['Name', p.name || p.email],
-        ['Email', p.email],
-        ['Phone', p.phone],
-        ['Specialization', Array.isArray(p.specialization) ? p.specialization.join(', ') : p.specialization],
-        ['Expertise Category', p.expertiseCategory],
-        ['Expertise', p.expertise],
-        ['Experience', p.experience != null ? `${p.experience} years` : null],
-        ['Experience Range', p.experienceRange],
-        ['Bio', p.bio],
-        ['Languages', p.languages],
-        ['Qualifications', p.qualifications],
-        ['Skills', p.skills],
-        ['Consultation Modes', p.consultationModes],
-        ['Location', [p.location?.city, p.location?.country].filter(Boolean).join(', ') || null],
-        ['Rating', p.rating != null ? (typeof p.rating === 'number' ? p.rating.toFixed(1) : p.rating) : null],
-        ['Total Sessions', p.totalSessions ?? p.completedSessions],
-        ['Price/Session', p.pricePerSession > 0 ? `₹${p.pricePerSession} (${p.currency || 'INR'})` : null],
-        ['Availability', p.availabilityPreference],
-        ['Status', p.status || p.onlineStatus],
-        ['Verified', p.isVerified != null ? (p.isVerified ? 'Yes' : 'No') : null]
-      ].filter(([, v]) => v != null && v !== '');
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {items.map(([label, value]) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
-              <span style={{ color: '#6b7280', flexShrink: 0 }}>{label}</span>
-              <span style={{ color: '#111827', textAlign: 'right', wordBreak: 'break-word' }}>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
-            </div>
-          ))}
-        </div>
-      );
-    };
+    // Render partner details in neat rows (no card) - we don't use this anymore as per requirement
 
     // Session summary for end modal
     const sessionSummary = computed(() => {
@@ -776,7 +746,7 @@ export default {
     });
 
     return () => (
-      <div style="display: flex; height: calc(100vh - 64px); background-color: #f9fafb;">
+      <div style="display: flex; height: 100%; overflow: hidden; background-color: #f9fafb;">
         {/* Sidebar */}
         <div style="width: 360px; background-color: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;">
           {/* Header */}
@@ -838,9 +808,13 @@ export default {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
                       <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="position: relative;">
-                          <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                            {partner.name?.charAt(0) || partner.email?.charAt(0) || 'P'}
+                        <div style="position: relative; flex-shrink: 0;">
+                          <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; overflow: hidden;">
+                            {partner.profileImage ? (
+                              <img src={partner.profileImage} alt={partner.name || 'Partner'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              partner.name?.charAt(0)?.toUpperCase() || partner.email?.charAt(0)?.toUpperCase() || 'P'
+                            )}
                           </div>
                           <div style={`position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; background-color: ${getStatusColor(partner.status)}; border: 2px solid white; border-radius: 50%;`} />
                         </div>
@@ -857,7 +831,7 @@ export default {
                             </span>
                           </div>
                           <p style="font-size: 13px; color: #6b7280; margin: 0 0 4px 0;">
-                            {partner.specialization || 'Astrologer'}
+                            {partner.specialization || 'Police Officer'}
                           </p>
                           <div style="display: flex; gap: 12px; font-size: 12px; color: #9ca3af;">
                             <span>⭐ {partner.rating?.toFixed(1) || '0.0'}</span>
@@ -877,12 +851,12 @@ export default {
                   <svg style="width: 48px; height: 48px; margin: 0 auto 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <p>No consultations yet</p>
+                  <p>No chat sessions yet</p>
                   <button
                     onClick={() => showPartnersList.value = true}
                     style="margin-top: 16px; padding: 10px 20px; background-color: #6366f1; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;"
                   >
-                    Find a Partner
+                    Find a Police Officer
                   </button>
                 </div>
               ) : (
@@ -900,8 +874,12 @@ export default {
                           onMouseLeave={(e) => { if (selectedConversation.value?.conversationId !== conv.conversationId) e.currentTarget.style.backgroundColor = 'white'; }}
                         >
                           <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                              {conv.otherUser?.name?.charAt(0) || conv.otherUser?.email?.charAt(0) || 'P'}
+                            <div style="width: 40px; height: 40px; flex-shrink: 0; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; overflow: hidden;">
+                              {conv.otherUser?.profileImage ? (
+                                <img src={conv.otherUser.profileImage} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                conv.otherUser?.name?.charAt(0)?.toUpperCase() || conv.otherUser?.email?.charAt(0)?.toUpperCase() || 'P'
+                              )}
                             </div>
                             <div style="flex: 1; min-width: 0;">
                               <p style="font-weight: 600; color: #111827; margin: 0; font-size: 14px;">{conv.otherUser?.name || conv.otherUser?.email}</p>
@@ -931,9 +909,13 @@ export default {
                           }}
                         >
                           <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="position: relative;">
-                              <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                                {conv.otherUser?.name?.charAt(0) || conv.otherUser?.email?.charAt(0) || 'P'}
+                            <div style="position: relative; flex-shrink: 0;">
+                              <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; overflow: hidden;">
+                                {conv.otherUser?.profileImage ? (
+                                  <img src={conv.otherUser.profileImage} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  conv.otherUser?.name?.charAt(0)?.toUpperCase() || conv.otherUser?.email?.charAt(0)?.toUpperCase() || 'P'
+                                )}
                               </div>
                               {conv.unreadCount > 0 && (
                                 <div style="position: absolute; top: -2px; right: -2px; width: 20px; height: 20px; background-color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600;">
@@ -977,19 +959,93 @@ export default {
         {/* Main Area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'row', minWidth: 0, background: '#f9fafb' }}>
           {(showPartnerDetails.value && selectedPartner.value && !selectedConversation.value) ? (
-            // Partner details only (before request) - full width panel
+            // Verification form full width panel
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'white', borderLeft: '1px solid #e5e7eb' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#111827' }}>Partner Details</h3>
-                <button onClick={() => { showPartnerDetails.value = false; selectedPartner.value = null; fullPartnerDetails.value = null; }} style={{ padding: '6px 12px', border: '1px solid #e5e7eb', background: 'white', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>Close</button>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>Verification Required</h3>
+                <button
+                  onClick={() => { showPartnerDetails.value = false; selectedPartner.value = null; fullPartnerDetails.value = null; aadhaarNumber.value = ''; }}
+                  style={{ padding: '6px 14px', border: '1px solid #e5e7eb', background: '#f9fafb', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#f9fafb'}
+                >
+                  Close
+                </button>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-                {renderPartnerDetailsPanel(fullPartnerDetails.value || selectedPartner.value)}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px 0' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '16px', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.2)' }}>
+                    <svg style={{ width: '28px', height: '28px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <h4 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 6px 0', color: '#111827', letterSpacing: '-0.02em' }}>Identity Proof</h4>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, maxWidth: '320px', margin: '0 auto', lineHeight: '1.5' }}>To chat with a police officer, please verify your identity by entering your Aadhaar Number.</p>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', maxWidth: '440px', margin: '0 auto' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                    Aadhaar Number <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={aadhaarNumber.value}
+                    onInput={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 12);
+                      aadhaarNumber.value = val;
+                      e.target.value = val;
+                    }}
+                    placeholder="Enter 12-digit Aadhaar Number"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s',
+                      backgroundColor: 'white'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#6366f1';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px', alignItems: 'flex-start' }}>
+                    <svg style={{ width: '14px', height: '14px', color: '#94a3b8', marginTop: '1px', flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <p style={{ fontSize: '11px', color: '#64748b', margin: 0, lineHeight: '1.4' }}>Your information is secure and will only be shared with the requested police official.</p>
+                  </div>
+                </div>
               </div>
-              <div style={{ padding: 16, borderTop: '1px solid #e5e7eb' }}>
-                <button onClick={startConsultationForSelectedPartner} style={{ width: '100%', padding: 12, background: '#6366f1', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>Request Consultation</button>
+              <div style={{ padding: '16px 20px', borderTop: '1px solid #f3f4f6' }}>
+                <button
+                  onClick={startConsultationForSelectedPartner}
+                  disabled={loading.value || aadhaarNumber.value.length < 12}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: (loading.value || aadhaarNumber.value.length < 12) ? '#cbd5e1' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    cursor: (loading.value || aadhaarNumber.value.length < 12) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.3s',
+                    boxShadow: (loading.value || aadhaarNumber.value.length < 12) ? 'none' : '0 10px 15px -3px rgba(99, 102, 241, 0.3)'
+                  }}>
+                  {loading.value ? 'Requesting...' : 'Request to Chat'}
+                </button>
               </div>
             </div>
+
           ) : selectedConversation.value ? (
             // Chat Area + Partner Details side panel
             <>
@@ -1005,9 +1061,13 @@ export default {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
-                    <div style={{ position: 'relative' }}>
-                      <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 18 }}>
-                        {selectedConversation.value.otherUser?.name?.charAt(0) || selectedConversation.value.otherUser?.email?.charAt(0) || 'P'}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 18, overflow: 'hidden' }}>
+                        {selectedConversation.value.otherUser?.profileImage ? (
+                          <img src={selectedConversation.value.otherUser.profileImage} alt="Partner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          selectedConversation.value.otherUser?.name?.charAt(0)?.toUpperCase() || selectedConversation.value.otherUser?.email?.charAt(0)?.toUpperCase() || 'P'
+                        )}
                       </div>
                       <div style={{ position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: '50%', border: '2px solid white', backgroundColor: getStatusColor(selectedConversation.value.otherUser?.status || selectedConversation.value.otherUser?.onlineStatus) }} />
                     </div>
@@ -1022,7 +1082,7 @@ export default {
                       ) : (
                         <>
                           <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                            {Array.isArray(selectedConversation.value.otherUser?.specialization) ? selectedConversation.value.otherUser.specialization.join(', ') : (selectedConversation.value.otherUser?.specialization || 'Astrologer')}
+                            {Array.isArray(selectedConversation.value.otherUser?.specialization) ? selectedConversation.value.otherUser.specialization.join(', ') : (selectedConversation.value.otherUser?.specialization || 'Police Officer')}
                           </p>
                           <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: '#9ca3af' }}>
                             <span>⭐ {selectedConversation.value.otherUser?.rating?.toFixed?.(1) || '0.0'}</span>
@@ -1041,7 +1101,7 @@ export default {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
                     >
-                      End Consultation
+                      End Session
                     </button>
                   )}
                 </div>
@@ -1064,7 +1124,7 @@ export default {
                         Waiting for Partner Acceptance
                       </p>
                       <p style="font-size: 14px; margin: 0;">
-                        {selectedConversation.value.otherUser?.name || 'The partner'} will be notified of your consultation request.
+                        {selectedConversation.value.otherUser?.name || 'The police officer'} will be notified of your chat request.
                       </p>
                     </div>
                   ) : messages.value.length === 0 && selectedConversation.value.status !== 'ended' ? (

@@ -8,7 +8,8 @@ import {
   FilmIcon,
   ArrowRightIcon,
   SparklesIcon,
-  VideoCameraIcon
+  VideoCameraIcon,
+  UsersIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -18,6 +19,15 @@ export default {
     const { user } = useAuth();
 
     const tools = [
+      {
+        id: 1,
+        name: 'Connect with Expert',
+        icon: UsersIcon,
+        description: 'Chat live with an available expert partner in real-time',
+        route: '/mobile/user/user-chat',
+        color: '#f59e0b',
+        badge: 'Live'
+      },
       {
         id: 3,
         name: 'Text Chat',
@@ -313,7 +323,8 @@ export default {
                 class="tool-icon-container"
                 style={{
                   backgroundColor: `${tool.color}15`,
-                  border: `2px solid ${tool.color}25`
+                  border: `2px solid ${tool.color}25`,
+                  position: 'relative'
                 }}
               >
                 <tool.icon
@@ -323,6 +334,20 @@ export default {
                     color: tool.color
                   }}
                 />
+                {tool.badge && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '9px',
+                    fontWeight: '700',
+                    padding: '2px 5px',
+                    borderRadius: '999px',
+                    lineHeight: '1.2'
+                  }}>{tool.badge}</span>
+                )}
               </div>
 
               <div class="tool-title">{tool.name}</div>

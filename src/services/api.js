@@ -172,25 +172,39 @@ class ApiService {
             console.warn('[API Warning] Could not verify token role:', e);
           }
         }
+      } else if (endpoint.includes('/mobile/voice')) {
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/partner')) {
+          token = getTokenForRole('partner');
+          tokenSource = 'voice (partner)';
+        } else if (currentPath.includes('/client')) {
+          token = getTokenForRole('client') || localStorage.getItem('token_client');
+          tokenSource = 'voice (client)';
+        } else if (currentPath.includes('/user') || currentPath.includes('/mobile')) {
+          token = getTokenForRole('user');
+          tokenSource = 'voice (user)';
+        } else {
+          token = getTokenForRole('user') || getTokenForRole('client') || getTokenForRole('partner');
+          tokenSource = 'voice (fallback)';
+        }
       } else if (endpoint.includes('/user/') || endpoint.includes('/users/') ||
-        endpoint.includes('/mobile/chat') || endpoint.includes('/mobile/voice') ||
+        endpoint.includes('/mobile/chat') ||
         endpoint.includes('/mobile/user/profile') ||
         endpoint.includes('/notifications')) {
-        // Let's check for 'client' or 'user' tokens for chat/voice
-        token = getTokenForRole('user') || getTokenForRole('client');
-        tokenSource = 'user/client (authenticated endpoint)';
+        // Let's check for 'client', 'user', or 'partner' tokens for chat/profile
+        token = getTokenForRole('user') || getTokenForRole('client') || getTokenForRole('partner');
+        tokenSource = 'user/client/partner (authenticated endpoint)';
 
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            // Only reject if it's strictly not user or client, BUT ONLY for chat/voice.
-            // For other mobile endpoints, keep strictly 'user' or whatever works.
-            if (payload.role !== 'user' && payload.role !== 'client') {
+            // Only reject if it's strictly not user, client, or partner
+            if (payload.role !== 'user' && payload.role !== 'client' && payload.role !== 'partner') {
               console.error('[API Error] Wrong token role for user endpoint:', {
                 endpoint,
                 tokenRole: payload.role,
-                requiredRole: 'user/client',
-                message: 'Rejecting non-user/client token for user endpoint'
+                requiredRole: 'user/client/partner',
+                message: 'Rejecting non-user/client/partner token for user endpoint'
               });
               token = null;
               tokenSource = 'rejected (wrong role)';

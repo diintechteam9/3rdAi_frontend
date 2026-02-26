@@ -412,7 +412,7 @@ export default {
 
     return () => (
       <div style="height: calc(100vh - 64px); background-color: #f9fafb;">
-        {/* Astrology Form Modal */}
+        {/* Police Find Modal */}
 
 
         {/* Main Content */}
@@ -422,10 +422,10 @@ export default {
               {/* Header */}
               <div style="margin-bottom: 24px;">
                 <h1 style="font-size: 28px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">
-                  Connect with Astrologers
+                  Connect with Police Officers
                 </h1>
-                <p style="color: #6b7280;">
-                  Choose an available astrologer to start your consultation
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                  Choose an available police officer to start your chat
                 </p>
 
                 {conversations.value.length > 0 && (
@@ -450,7 +450,7 @@ export default {
                 </div>
               ) : partners.value.length === 0 ? (
                 <div style="text-align: center; padding: 60px; background-color: white; border-radius: 12px;">
-                  <p style="color: #6b7280;">No astrologers available at the moment</p>
+                  <p style="color: #6b7280;">No police officers available at the moment</p>
                 </div>
               ) : (
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
@@ -482,7 +482,7 @@ export default {
                             {partner.name}
                           </h3>
                           <p style="font-size: 13px; color: #6b7280; margin: 0;">
-                            {partner.specialization || 'Vedic Astrologer'}
+                            {partner.specialization || 'Police Officer'}
                           </p>
                           <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
                             <span style={`font-size: 12px; font-weight: 500; color: ${getStatusColor(partner.onlineStatus)};`}>
@@ -543,7 +543,7 @@ export default {
                   <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
-                  <span>Browse Astrologers</span>
+                  <span>Browse Police Officers</span>
                 </button>
               </div>
 
@@ -625,7 +625,7 @@ export default {
                         ) : (
                           <>
                             <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                              {Array.isArray(selectedConversation.value.partnerId?.specialization) ? selectedConversation.value.partnerId.specialization.join(', ') : (selectedConversation.value.partnerId?.specialization || 'Astrologer')}
+                              {Array.isArray(selectedConversation.value.partnerId?.specialization) ? selectedConversation.value.partnerId.specialization.join(', ') : (selectedConversation.value.partnerId?.specialization || 'Police Officer')}
                             </p>
                             <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: '#9ca3af' }}>
                               <span>⭐ {selectedConversation.value.partnerId?.rating?.toFixed?.(1) || '0.0'}</span>
@@ -655,10 +655,10 @@ export default {
                           </svg>
                         </div>
                         <h3 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 8px 0;">
-                          Waiting for Astrologer
+                          Waiting for Police Officer
                         </h3>
-                        <p style="color: #6b7280; margin: 0;">
-                          Your consultation request has been sent. The astrologer will accept it shortly.
+                        <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                          Your chat request has been sent. The police officer will accept it shortly.
                         </p>
                       </div>
                     ) : messages.value.length === 0 ? (
@@ -711,7 +711,7 @@ export default {
                   <div style="padding: 16px 24px; background-color: white; border-top: 1px solid #e5e7eb;">
                     {selectedConversation.value.status === 'pending' ? (
                       <div style="text-align: center; padding: 12px; background-color: #fef3c7; border-radius: 8px; color: #92400e; font-size: 14px;">
-                        Messaging will be enabled once the astrologer accepts your request
+                        Messaging will be enabled once the police officer accepts your request
                       </div>
                     ) : (
                       <div style="display: flex; gap: 12px; align-items: center;">
