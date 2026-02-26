@@ -56,7 +56,7 @@ export default {
                             <span style="font-size: 24px;">🔔</span>
                             <div>
                                 <h2 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0;">All Alerts</h2>
-                                <p style="font-size: 13px; color: #6b7280; margin: 2px 0 0;">Stay updated with the latest system and client alerts</p>
+                                <p style="font-size: 13px; color: #6b7280; margin: 2px 0 0;">Stay updated with the latest alerts from Security Devices and Citizen Cases</p>
                             </div>
                         </div>
                         <button
@@ -75,13 +75,13 @@ export default {
                             onClick={() => setTab('CLIENT')}
                             style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'CLIENT' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'CLIENT' ? '#4f46e5' : '#6b7280'};`}
                         >
-                            🏢 Client Alerts
+                            🏢 Devices Alerts
                         </button>
                         <button
                             onClick={() => setTab('USER')}
                             style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'USER' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'USER' ? '#4f46e5' : '#6b7280'};`}
                         >
-                            👥 User Alerts
+                            👥 Citizen Cases
                         </button>
                     </div>
 
