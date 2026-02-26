@@ -647,6 +647,14 @@ class ApiService {
     });
   }
 
+  // Report Citizen Case
+  async reportCase(payload) {
+    return this.request('/alerts/user', {
+      method: 'POST',
+      body: payload
+    });
+  }
+
   // Super Admin endpoints
   async getAdmins() {
     return this.request('/super-admin/admins');

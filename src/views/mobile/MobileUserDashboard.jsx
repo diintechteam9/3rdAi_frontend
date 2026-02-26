@@ -7,7 +7,6 @@ import {
   UserIcon,
   FilmIcon,
   ArrowRightIcon,
-  SparklesIcon,
   VideoCameraIcon,
   UsersIcon
 } from '@heroicons/vue/24/outline';
@@ -65,6 +64,7 @@ export default {
     const handleCardClick = (route) => {
       router.push(route);
     };
+
     const clientName = user.value?.clientId?.businessName || 'Partner';
     const clientIdDisplay = user.value?.clientId?.clientId || '';
 
@@ -72,19 +72,7 @@ export default {
       <div class="mobile-dashboard">
         {/* Header */}
         <div class="dashboard-header">
-          <div class="profile-section">
-            {user.value?.profileImageUrl ? (
-              <img
-                src={user.value.profileImageUrl}
-                alt="Profile"
-                class="profile-image"
-              />
-            ) : (
-              <div class="profile-placeholder">
-                <UserIcon style={{ width: '2rem', height: '2rem', color: '#64748b' }} />
-              </div>
-            )}
-          </div>
+
           <p>Welcome to <strong>{clientName}</strong> AI Services</p>
           {clientIdDisplay && <p class="client-id">Client ID: {clientIdDisplay}</p>}
           <p class="subtitle">Access your AI-powered tools and features</p>
@@ -95,13 +83,17 @@ export default {
             padding: 1rem;
             min-height: 100vh;
             background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: auto;
           }
           
           .dashboard-header {
             background: rgba(255, 255, 255, 0.9);
             border-radius: 12px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 2rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(0, 0, 0, 0.05);
             text-align: center;
@@ -109,68 +101,45 @@ export default {
           
           .dashboard-header p {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: #1e293b;
             font-weight: 500;
           }
 
           .dashboard-header .client-id {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #6366f1;
             font-weight: 600;
-            margin: 0.25rem 0;
+            margin: 0.2rem 0;
             background: #e0e7ff;
             display: inline-block;
             padding: 0.1rem 0.5rem;
             border-radius: 4px;
           }
 
-          .profile-section {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-          }
-
-          .profile-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          }
-
-          .profile-placeholder {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: #f1f5f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 3px solid white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          }
-          
           .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 1.5rem;
+            align-content: start;
+            flex-grow: 1;
           }
           
           @media (max-width: 768px) {
             .mobile-dashboard {
+              height: auto;
+              overflow-y: visible;
               padding: 0.75rem;
             }
             
             .tools-grid {
               grid-template-columns: 1fr;
-              gap: 1rem;
+              gap: 0.75rem;
             }
             
             .dashboard-header {
-              padding: 0.75rem 1rem;
-              margin-bottom: 1.5rem;
+              padding: 0.5rem 0.75rem;
+              margin-bottom: 0.75rem;
             }
             
             .dashboard-header p {
@@ -184,25 +153,29 @@ export default {
             }
             
             .tools-grid {
-              gap: 0.75rem;
+              gap: 0.5rem;
             }
             
             .dashboard-header {
               padding: 0.5rem 0.75rem;
-              margin-bottom: 1rem;
+              margin-bottom: 0.5rem;
             }
           }
           
           .tool-card {
             background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
+            border-radius: 12px;
+            padding: 1.25rem;
+            min-height: 200px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid rgba(0, 0, 0, 0.05);
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
           }
           
           .tool-card:hover {
@@ -211,13 +184,13 @@ export default {
           }
           
           .tool-icon-container {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.6rem;
             transition: all 0.3s ease;
           }
           
@@ -226,33 +199,35 @@ export default {
           }
           
           .tool-title {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #1e293b;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
           }
           
           .tool-description {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #64748b;
-            line-height: 1.4;
-            margin-bottom: 1rem;
+            line-height: 1.3;
+            margin-bottom: 0.6rem;
+            flex-grow: 1;
           }
           
           .tool-action {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-top: auto;
           }
           
           .tool-action-text {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #94a3b8;
           }
           
           .tool-arrow {
-            width: 32px;
-            height: 32px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -266,31 +241,12 @@ export default {
           
           @media (max-width: 768px) {
             .tool-card {
-              padding: 1.25rem;
-            }
-            
-            .tool-icon-container {
-              width: 50px;
-              height: 50px;
-            }
-            
-            .tool-title {
-              font-size: 1rem;
-            }
-            
-            .tool-description {
-              font-size: 0.85rem;
-            }
-          }
-          
-          @media (max-width: 480px) {
-            .tool-card {
               padding: 1rem;
             }
             
             .tool-icon-container {
-              width: 45px;
-              height: 45px;
+              width: 40px;
+              height: 40px;
             }
             
             .tool-title {
@@ -300,10 +256,30 @@ export default {
             .tool-description {
               font-size: 0.8rem;
             }
+          }
+          
+          @media (max-width: 480px) {
+            .tool-card {
+              padding: 0.85rem;
+            }
+            
+            .tool-icon-container {
+              width: 36px;
+              height: 36px;
+              margin-bottom: 0.5rem;
+            }
+            
+            .tool-title {
+              font-size: 0.9rem;
+            }
+            
+            .tool-description {
+              font-size: 0.75rem;
+            }
             
             .tool-arrow {
-              width: 28px;
-              height: 28px;
+              width: 24px;
+              height: 24px;
             }
           }
         `}</style>

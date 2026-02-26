@@ -49,39 +49,31 @@ export default {
         };
 
         return () => (
-            <div style="padding: 24px; max-width: 1000px; margin: 0 auto; font-family: 'Inter', 'Segoe UI', sans-serif;">
+            <div style="padding: 24px; margin: 0 auto; font-family: 'Inter', 'Segoe UI', sans-serif;">
                 <div style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #f3f4f6; overflow: hidden;">
-                    <div style="padding: 20px 24px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span style="font-size: 24px;">🔔</span>
-                            <div>
-                                <h2 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0;">All Alerts</h2>
-                                <p style="font-size: 13px; color: #6b7280; margin: 2px 0 0;">Stay updated with the latest alerts from Security Devices and Citizen Cases</p>
-                            </div>
+                    {/* Tabs */}
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; background: #f9fafb; padding: 0 24px;">
+                        <div style="display: flex;">
+                            <button
+                                onClick={() => setTab('CLIENT')}
+                                style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'CLIENT' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'CLIENT' ? '#4f46e5' : '#6b7280'};`}
+                            >
+                                🏢 Devices Alerts
+                            </button>
+                            <button
+                                onClick={() => setTab('USER')}
+                                style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'USER' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'USER' ? '#4f46e5' : '#6b7280'};`}
+                            >
+                                👥 Citizen Reports
+                            </button>
                         </div>
                         <button
                             onClick={fetchAlerts}
-                            style="padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: #4b5563; transition: all 0.2s;"
-                            onMouseOver={e => e.currentTarget.style.background = '#f9fafb'}
+                            style="padding: 6px 14px; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: #4b5563; transition: all 0.2s;"
+                            onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'}
                             onMouseOut={e => e.currentTarget.style.background = 'white'}
                         >
                             🔄 Refresh
-                        </button>
-                    </div>
-
-                    {/* Tabs */}
-                    <div style="display: flex; border-bottom: 1px solid #e5e7eb; background: #f9fafb; padding: 0 24px;">
-                        <button
-                            onClick={() => setTab('CLIENT')}
-                            style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'CLIENT' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'CLIENT' ? '#4f46e5' : '#6b7280'};`}
-                        >
-                            🏢 Devices Alerts
-                        </button>
-                        <button
-                            onClick={() => setTab('USER')}
-                            style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'USER' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'USER' ? '#4f46e5' : '#6b7280'};`}
-                        >
-                            👥 Citizen Cases
                         </button>
                     </div>
 
@@ -126,6 +118,30 @@ export default {
                                                     </span>
                                                 </div>
                                                 <p style="margin: 0; color: #4b5563; font-size: 14px; line-height: 1.6;">{alert.message}</p>
+
+                                                {/* Render User Case Metadata if available */}
+                                                {alert.type === 'USER' && alert.metadata && Object.keys(alert.metadata).length > 0 && (
+                                                    <div style="margin-top: 12px; background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 13px;">
+                                                        <h4 style="margin: 0 0 8px; font-size: 13px; color: #374151; font-weight: 600;">Case Details:</h4>
+                                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+                                                            {Object.entries(alert.metadata).map(([key, value]) => {
+                                                                // Skip some internal or array fields just for simple display, or format them nicely
+                                                                if (key === 'media' || typeof value === 'object') return null;
+                                                                if (!value || value === 'No' || value === '') return null; // Skip empty/No answers to reduce noise
+
+                                                                // Convert camelCase to Title Case
+                                                                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+                                                                return (
+                                                                    <div key={key} style="display: flex; flex-direction: column;">
+                                                                        <span style="color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">{label}</span>
+                                                                        <span style="color: #111827; font-weight: 500;">{String(value)}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );

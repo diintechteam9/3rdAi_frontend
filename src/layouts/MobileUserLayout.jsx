@@ -2,6 +2,7 @@ import { RouterView } from 'vue-router';
 import { useAuth } from '../store/auth.js';
 import { useRouter } from 'vue-router';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
+import logo from '../assets/logo.png';
 import {
   Bars3Icon,
   XMarkIcon,
@@ -18,7 +19,8 @@ import {
   ChartBarIcon,
   VideoCameraIcon,
   MoonIcon,
-  UsersIcon
+  UsersIcon,
+  DocumentPlusIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -63,6 +65,7 @@ export default {
       if (path.includes('/voice')) return 'voice';
 
       if (path.includes('/profile')) return 'profile';
+      if (path.includes('/report-case')) return 'report-case';
       if (path.includes('/user-chat')) return 'user-chat';
       if (path.includes('/dashboard')) return 'home';
       return null;
@@ -85,6 +88,8 @@ export default {
 
       } else if (page === 'profile') {
         router.push('/mobile/user/profile');
+      } else if (page === 'report-case') {
+        router.push('/mobile/user/report-case');
       } else if (page === 'user-chat') {
         router.push('/mobile/user/user-chat');
       }
@@ -135,6 +140,17 @@ export default {
           <div style={{ padding: (sidebarCollapsed.value && !isMobile.value) ? '0.5rem' : '1rem', borderBottom: '1px solid #2d2d3e', minWidth: 0, overflow: 'hidden', textAlign: (sidebarCollapsed.value && !isMobile.value) ? 'center' : 'left' }}>
             {!(sidebarCollapsed.value && !isMobile.value) ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <img
+                  src={logo}
+                  alt="3rdAI Logo"
+                  style={{
+                    width: '45px',
+                    height: '45px',
+                    borderRadius: '8px',
+                    objectFit: 'contain',
+                    flexShrink: 0
+                  }}
+                />
                 <div style={{ minWidth: 0, overflow: 'hidden' }}>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0, color: 'white', whiteSpace: 'nowrap' }}>3rdAI</h2>
                   <p style={{ fontSize: '0.75rem', margin: '0.25rem 0 0 0', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
@@ -182,6 +198,7 @@ export default {
             `}</style>
             {[
               { id: 'home', label: 'Home', icon: HomeIcon },
+              { id: 'report-case', label: 'Report a Case', icon: DocumentPlusIcon },
               { id: 'cctv', label: 'CCTV', icon: VideoCameraIcon },
               { id: 'voice', label: 'Voice', icon: MicrophoneIcon },
               { id: 'chat', label: 'Chat', icon: ChatBubbleLeftRightIcon },

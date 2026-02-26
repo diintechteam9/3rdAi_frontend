@@ -159,6 +159,11 @@ const routes = [
         component: () => import('../views/mobile/MobileUserProfile.jsx')
       },
       {
+        path: 'report-case',
+        name: 'MobileReportCase',
+        component: () => import('../views/mobile/MobileReportCase.jsx')
+      },
+      {
         path: 'chat',
         name: 'MobileChatPage',
         component: () => import('../views/mobile/MobileChatPage.jsx')
