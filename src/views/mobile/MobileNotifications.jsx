@@ -50,6 +50,8 @@ export default {
       }
       if (notification.data?.sankalpId) {
         router.push(`/mobile/user/sankalp/${notification.data.sankalpId}`);
+      } else if (notification.data?.alertId) {
+        router.push(`/mobile/user/case/${notification.data.alertId}`);
       }
     };
 

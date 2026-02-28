@@ -24,9 +24,10 @@ const routes = [
   {
     path: '/partner/register',
     name: 'PartnerRegister',
-    component: () => import('../views/partner/PartnerRegister.jsx'),
+    component: () => import('../views/partner/PartnerRegisterMultiStep.jsx'),
     meta: { requiresGuest: true }
   },
+
   {
     path: '/partner/waiting-approval',
     name: 'PartnerWaitingApproval',
@@ -37,6 +38,12 @@ const routes = [
     path: '/partner/dashboard',
     name: 'PartnerDashboard',
     component: () => import('../views/partner/PartnerDashboard.jsx'),
+    meta: { requiresAuth: true, requiresRole: 'partner' }
+  },
+  {
+    path: '/partner/geo-tracking',
+    name: 'PartnerGeoTracking',
+    component: () => import('../views/shared/GeoTracking.jsx'),
     meta: { requiresAuth: true, requiresRole: 'partner' }
   },
   {
@@ -162,6 +169,16 @@ const routes = [
         path: 'report-case',
         name: 'MobileReportCase',
         component: () => import('../views/mobile/MobileReportCase.jsx')
+      },
+      {
+        path: 'my-cases',
+        name: 'MobileMyCases',
+        component: () => import('../views/mobile/MyCases.jsx')
+      },
+      {
+        path: 'case/:id',
+        name: 'MobileCaseDetail',
+        component: () => import('../views/mobile/CaseDetail.jsx')
       },
       {
         path: 'chat',
@@ -384,9 +401,9 @@ const routes = [
         component: () => import('../views/client/Services.jsx')
       },
       {
-        path: 'ai-agents',
-        name: 'ClientAIAgents',
-        component: () => import('../views/client/AIAgents.jsx')
+        path: 'all-reports',
+        name: 'ClientAllReports',
+        component: () => import('../views/client/AllReports.jsx')
       },
       {
         path: 'cctv-surveillance',
@@ -424,6 +441,16 @@ const routes = [
         path: 'tools/voice',
         name: 'ClientVoicePage',
         component: () => import('../views/mobile/MobileVoicePage.jsx')
+      },
+      {
+        path: 'geo-tracking',
+        name: 'ClientGeoTracking',
+        component: () => import('../views/shared/GeoTracking.jsx')
+      },
+      {
+        path: 'area-assignment',
+        name: 'ClientAreaAssignment',
+        component: () => import('../views/client/AreaAssignment.jsx')
       },
 
       // Client Services

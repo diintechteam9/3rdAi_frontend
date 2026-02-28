@@ -5,6 +5,7 @@ import PartnerProfile from './PartnerProfile.jsx';
 import PartnerAlerts from './PartnerAlerts.jsx';
 import MobileVoicePage from '../mobile/MobileVoicePage.jsx';
 import PartnerChat from './PartnerChat.jsx';
+import GeoTracking from '../shared/GeoTracking.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
@@ -306,12 +307,15 @@ export default {
           return <PartnerChat />;
         case 'profile':
           return <PartnerProfile />;
+        case 'geo-tracking':
+          return <GeoTracking />;
         case 'settings':
           return renderPlaceholder('Settings');
         default:
           return renderDashboard();
       }
     };
+
 
     return () => (
       <div style="position: relative; min-height: 100vh; background-color: #f9fafb; margin: 0; padding: 0;">
@@ -347,6 +351,7 @@ export default {
             {[
               { id: 'home', label: 'Home', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg> },
               { id: 'alert', label: 'Alert', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg> },
+
               {
                 id: 'ai-police',
                 label: 'AI-Police',
@@ -362,6 +367,7 @@ export default {
                 badge: pendingChatRequests.value > 0 ? pendingChatRequests.value : null,
                 icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
               },
+              { id: 'geo-tracking', label: 'Geo Tracking', icon: <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
               { id: 'profile', label: 'Profile', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg> },
               { id: 'settings', label: 'Settings', icon: <svg style="width: 18px; height: 18px;" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" /></svg> }
             ].map(item => (
@@ -459,7 +465,7 @@ export default {
               </button>
 
               <h1 style="font-size: 24px; font-weight: bold; color: #1f2937; text-transform: capitalize; margin: 0;">
-                {activeTab.value === 'request' ? 'User Chat' : activeTab.value.includes('ai-police-') ? `AI Police - ${activeTab.value.split('-')[2]}` : activeTab.value}
+                {activeTab.value === 'request' ? 'User Chat' : activeTab.value === 'geo-tracking' ? 'Geo Tracking' : activeTab.value.includes('ai-police-') ? `AI Police - ${activeTab.value.split('-')[2]}` : activeTab.value}
               </h1>
             </div>
 
@@ -481,10 +487,11 @@ export default {
 
         {/* Main Content */}
         <div style={`margin-left: ${sidebarCollapsed.value ? '80px' : '260px'}; padding-top: 64px; min-height: 100vh; transition: margin-left 0.3s ease;`}>
-          <main style={(activeTab.value === 'ai-police-chat' || activeTab.value === 'request') ? 'padding: 0; height: calc(100vh - 64px);' : 'padding: 24px;'}>
+          <main style={(activeTab.value === 'ai-police-chat' || activeTab.value === 'request' || activeTab.value === 'alert') ? 'padding: 0; height: calc(100vh - 64px);' : 'padding: 24px;'}>
             {renderContent()}
           </main>
         </div>
+
 
         <style>{`
           @keyframes spin {

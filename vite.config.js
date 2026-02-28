@@ -6,8 +6,9 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 export default defineConfig({
   plugins: [vue(), vueJsx()],
   server: {
-    // Enable host to allow network access if needed
     host: true,
+    port: 5173,         // Always use port 5173
+    strictPort: true,   // Fail immediately if 5173 is taken (no silent fallback to 5174)
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:4000',

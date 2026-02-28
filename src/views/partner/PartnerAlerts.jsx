@@ -1,4 +1,5 @@
 import { ref, onMounted } from 'vue';
+import PartnerCases from './PartnerCases.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
@@ -18,11 +19,11 @@ export default {
         };
 
         const fetchAlerts = async () => {
+            if (activeTab.value === 'USER') return;
             loading.value = true;
             error.value = '';
             try {
                 const token = localStorage.getItem('partner_token');
-                // Fetch up to 50 active alerts for the "All Alerts" view, filtered by type
                 const res = await fetch(`${API_BASE_URL}/alerts/partner?limit=50&type=${activeTab.value}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -44,110 +45,181 @@ export default {
 
         const setTab = (tab) => {
             activeTab.value = tab;
-            alerts.value = [];
-            fetchAlerts();
+            if (tab === 'CLIENT') {
+                alerts.value = [];
+                fetchAlerts();
+            }
+        };
+
+        const renderContent = () => {
+            if (activeTab.value === 'USER') {
+                return (
+                    <div style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
+                        <PartnerCases />
+                    </div>
+                );
+            }
+
+            if (loading.value) {
+                return (
+                    <div style={{ textAlign: 'center', padding: '100px 24px', color: '#64748b' }}>
+                        <div style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite', marginBottom: '16px' }}></div>
+                        <div style={{ fontWeight: '600' }}>Loading device alerts...</div>
+                    </div>
+                );
+            }
+
+            if (error.value) {
+                return (
+                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                        <div style={{ color: '#ef4444', background: '#fee2e2', borderRadius: '12px', padding: '16px', display: 'inline-block', maxWidth: '400px' }}>
+                            {error.value}
+                        </div>
+                    </div>
+                );
+            }
+
+            if (alerts.value.length === 0) {
+                return (
+                    <div style={{ textAlign: 'center', padding: '80px 24px', color: '#94a3b8' }}>
+                        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏢</div>
+                        <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#1e293b', fontWeight: '700' }}>No Client Alerts</h3>
+                        <p style={{ margin: 0, fontSize: '14px' }}>There are no active alerts from connected devices.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {alerts.value.map((alert) => {
+                            const cfg = priorityConfig[alert.priority] || priorityConfig.medium;
+                            return (
+                                <div key={alert._id} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', display: 'flex', alignItems: 'flex-start', gap: '16px', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: cfg.badge, marginTop: '6px', flexShrink: 0, boxShadow: `0 0 0 4px ${cfg.bg}` }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <h3 style={{ fontWeight: '700', color: '#1e293b', fontSize: '16px', margin: 0 }}>{alert.title}</h3>
+                                                <span style={{ fontSize: '10px', fontWeight: '800', color: cfg.color, background: cfg.bg, padding: '2px 8px', borderRadius: '999px', border: `1px solid ${cfg.border}`, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{alert.priority}</span>
+                                            </div>
+                                            <span style={{ color: '#64748b', fontSize: '12px', fontWeight: '500' }}>
+                                                {new Date(alert.createdAt).toLocaleString('en-IN', {
+                                                    weekday: 'short', month: 'short', day: 'numeric',
+                                                    hour: '2-digit', minute: '2-digit', hour12: true
+                                                })}
+                                            </span>
+                                        </div>
+                                        <p style={{ margin: 0, color: '#475569', fontSize: '14px', lineHeight: '1.6' }}>{alert.message}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
         };
 
         return () => (
-            <div style="padding: 24px; margin: 0 auto; font-family: 'Inter', 'Segoe UI', sans-serif;">
-                <div style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #f3f4f6; overflow: hidden;">
-                    {/* Tabs */}
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; background: #f9fafb; padding: 0 24px;">
-                        <div style="display: flex;">
-                            <button
-                                onClick={() => setTab('CLIENT')}
-                                style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'CLIENT' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'CLIENT' ? '#4f46e5' : '#6b7280'};`}
-                            >
-                                🏢 Devices Alerts
-                            </button>
-                            <button
-                                onClick={() => setTab('USER')}
-                                style={`padding: 14px 24px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: transparent; transition: all 0.2s; border-bottom: 2px solid ${activeTab.value === 'USER' ? '#4f46e5' : 'transparent'}; color: ${activeTab.value === 'USER' ? '#4f46e5' : '#6b7280'};`}
-                            >
-                                👥 Citizen Reports
-                            </button>
-                        </div>
+            <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', background: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                    
+                    /* Custom Premium Scrollbar */
+                    ::-webkit-scrollbar {
+                        width: 6px;
+                        height: 6px;
+                    }
+                    ::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+                    ::-webkit-scrollbar-thumb {
+                        background: #e2e8f0;
+                        border-radius: 10px;
+                    }
+                    ::-webkit-scrollbar-thumb:hover {
+                        background: #cbd5e1;
+                    }
+
+                    .tab-btn-main {
+                        padding: 16px 0;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        border: none;
+                        background: transparent;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        position: relative;
+                        bottom: -1px;
+                    }
+                    .tab-btn-main::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 2px;
+                        background: #4f46e5;
+                        transform: scaleX(0);
+                        transition: transform 0.3s ease;
+                        border-radius: 2px;
+                    }
+                    .tab-btn-main.active {
+                        color: #4f46e5 !important;
+                    }
+                    .tab-btn-main.active::after {
+                        transform: scaleX(1);
+                    }
+                `}</style>
+
+                {/* Main Content Area */}
+                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    {/* Integrated Tab Bar */}
+                    <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: '0 24px', flexShrink: 0, display: 'flex', alignItems: 'center', height: '56px', gap: '32px' }}>
                         <button
-                            onClick={fetchAlerts}
-                            style="padding: 6px 14px; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: #4b5563; transition: all 0.2s;"
-                            onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'}
-                            onMouseOut={e => e.currentTarget.style.background = 'white'}
+                            onClick={() => setTab('CLIENT')}
+                            class={['tab-btn-main', activeTab.value === 'CLIENT' ? 'active' : ''].join(' ')}
+                            style={{ color: activeTab.value === 'CLIENT' ? '#4f46e5' : '#64748b' }}
                         >
-                            🔄 Refresh
+                            <span style={{ fontSize: '16px' }}>🏢</span> Device Alerts
                         </button>
+                        <button
+                            onClick={() => setTab('USER')}
+                            class={['tab-btn-main', activeTab.value === 'USER' ? 'active' : ''].join(' ')}
+                            style={{ color: activeTab.value === 'USER' ? '#4f46e5' : '#64748b' }}
+                        >
+                            <span style={{ fontSize: '16px' }}>👥</span> Citizen Reports
+                        </button>
+
+                        <div style={{ flex: 1 }}></div>
+
+                        {activeTab.value === 'CLIENT' && (
+                            <button
+                                onClick={fetchAlerts}
+                                style={{
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    color: '#4f46e5',
+                                    background: '#eef2ff',
+                                    border: '1px solid #c7d2fe',
+                                    padding: '6px 14px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                ↻ Refresh
+                            </button>
+                        )}
                     </div>
 
-                    <div style="padding: 24px;">
-                        {loading.value ? (
-                            <div style="text-align: center; padding: 40px; color: #6b7280;">
-                                <div style="width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #4f46e5; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
-                                <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }}></style>
-                                <div>Loading alerts...</div>
-                            </div>
-                        ) : error.value ? (
-                            <div style="text-align: center; padding: 40px; color: #ef4444; background: #fee2e2; border-radius: 8px;">
-                                {error.value}
-                            </div>
-                        ) : alerts.value.length === 0 ? (
-                            <div style="text-align: center; padding: 60px 20px; color: #9ca3af; border: 2px dashed #e5e7eb; border-radius: 12px; background: #f9fafb;">
-                                <div style="font-size: 48px; margin-bottom: 16px;">{activeTab.value === 'CLIENT' ? '🏢' : '👥'}</div>
-                                <h3 style="margin: 0 0 8px; font-size: 16px; color: #4b5563; font-weight: 600;">No {activeTab.value === 'CLIENT' ? 'Client' : 'User'} Alerts</h3>
-                                <p style="margin: 0; font-size: 14px;">There are no active {activeTab.value.toLowerCase()} alerts right now.</p>
-                            </div>
-                        ) : (
-                            <div style="display: flex; flex-direction: column; gap: 16px;">
-                                {alerts.value.map((alert) => {
-                                    const cfg = priorityConfig[alert.priority] || priorityConfig.medium;
-                                    return (
-                                        <div key={alert._id} style={`background: ${cfg.bg}; border: 1px solid ${cfg.border}; border-radius: 12px; padding: 20px; display: flex; align-items: flex-start; gap: 16px; transition: transform 0.2s, box-shadow 0.2s; cursor: default;`}
-                                            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'; }}
-                                            onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-                                        >
-                                            <div style={`width: 10px; height: 10px; border-radius: 50%; background: ${cfg.badge}; margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 0 4px white;`} />
-                                            <div style="flex: 1; min-width: 0;">
-                                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">
-                                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                                        <h3 style="font-weight: 600; color: #111827; font-size: 16px; margin: 0;">{alert.title}</h3>
-                                                        <span style={`font-size: 11px; font-weight: 700; color: ${cfg.color}; background: white; padding: 2px 8px; border-radius: 999px; border: 1px solid ${cfg.border};`}>{cfg.label}</span>
-                                                    </div>
-                                                    <span style="color: #9ca3af; font-size: 12px; font-weight: 500;">
-                                                        {new Date(alert.createdAt).toLocaleString(undefined, {
-                                                            weekday: 'short', month: 'short', day: 'numeric',
-                                                            hour: '2-digit', minute: '2-digit'
-                                                        })}
-                                                    </span>
-                                                </div>
-                                                <p style="margin: 0; color: #4b5563; font-size: 14px; line-height: 1.6;">{alert.message}</p>
-
-                                                {/* Render User Case Metadata if available */}
-                                                {alert.type === 'USER' && alert.metadata && Object.keys(alert.metadata).length > 0 && (
-                                                    <div style="margin-top: 12px; background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 13px;">
-                                                        <h4 style="margin: 0 0 8px; font-size: 13px; color: #374151; font-weight: 600;">Case Details:</h4>
-                                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
-                                                            {Object.entries(alert.metadata).map(([key, value]) => {
-                                                                // Skip some internal or array fields just for simple display, or format them nicely
-                                                                if (key === 'media' || typeof value === 'object') return null;
-                                                                if (!value || value === 'No' || value === '') return null; // Skip empty/No answers to reduce noise
-
-                                                                // Convert camelCase to Title Case
-                                                                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-
-                                                                return (
-                                                                    <div key={key} style="display: flex; flex-direction: column;">
-                                                                        <span style="color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">{label}</span>
-                                                                        <span style="color: #111827; font-weight: 500;">{String(value)}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                    {/* Content Scroll Area */}
+                    <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+                        {renderContent()}
                     </div>
                 </div>
             </div>

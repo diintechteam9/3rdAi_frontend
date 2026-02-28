@@ -6,6 +6,7 @@ const getRoleFromPath = (path) => {
   if (path?.startsWith('/admin')) return 'admin';
   if (path?.startsWith('/client')) return 'client';
   if (path?.startsWith('/partner')) return 'partner';
+  if (path?.startsWith('/mobile/user')) return 'user';
   if (path?.startsWith('/user')) return 'user';
   return null;
 };
@@ -99,7 +100,7 @@ class ApiService {
       if (isPublicEndpoint) {
         token = null;
         tokenSource = 'none (public endpoint)';
-      } else if (endpoint.includes('/partner/') || endpoint.includes('/chat/partner/')) {
+      } else if (endpoint.includes('/partner') || endpoint.includes('/chat/partner') || endpoint.includes('/alerts/partner')) {
         // PARTNER ENDPOINTS - Use partner token
         token = getTokenForRole('partner');
         tokenSource = 'partner (endpoint match)';
@@ -188,6 +189,7 @@ class ApiService {
           tokenSource = 'voice (fallback)';
         }
       } else if (endpoint.includes('/user/') || endpoint.includes('/users/') ||
+        endpoint.includes('/alerts/user') ||
         endpoint.includes('/mobile/chat') ||
         endpoint.includes('/mobile/user/profile') ||
         endpoint.includes('/notifications')) {
@@ -252,6 +254,12 @@ class ApiService {
         ...(options.headers || {}),
       },
     };
+
+    console.log(`[API Request] ${method} ${endpoint}`, {
+      hasToken: !!token,
+      tokenSource,
+      headers: config.headers
+    });
 
     delete config.token;
 
@@ -480,10 +488,10 @@ class ApiService {
     });
   }
 
-  async clientRegister(email, password, businessName, businessType, contactNumber, address) {
+  async clientRegister(email, password, organizationName, state, city, address, contactNumber, alternateContact, cityBoundary) {
     return this.request('/auth/client/register', {
       method: 'POST',
-      body: { email, password, businessName, businessType, contactNumber, address },
+      body: { email, password, organizationName, state, city, address, contactNumber, alternateContact, cityBoundary },
     });
   }
 
@@ -652,6 +660,52 @@ class ApiService {
     return this.request('/alerts/user', {
       method: 'POST',
       body: payload
+    });
+  }
+
+  // Get User's Own Cases
+  async getUserCases() {
+    return this.request('/alerts/user', {
+      method: 'GET'
+    });
+  }
+
+  // Get User's Specific Case
+  async getUserCaseById(caseId) {
+    return this.request(`/alerts/user/${caseId}`, {
+      method: 'GET'
+    });
+  }
+
+  // Partner — Get all cases with optional filters
+  async getPartnerCases(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.append('status', params.status);
+    if (params.type) qs.append('type', params.type);
+    if (params.priority) qs.append('priority', params.priority);
+    if (params.page) qs.append('page', params.page);
+    if (params.limit) qs.append('limit', params.limit);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request(`/alerts/partner${query}`, { method: 'GET' });
+  }
+
+  // Partner — Get specific case detail (includes allowedNextStatuses + availableBasisTypes)
+  async getPartnerCaseById(caseId) {
+    return this.request(`/alerts/partner/${caseId}`, { method: 'GET' });
+  }
+
+  // Partner — Structured status update (strict flow: basisType + description required)
+  async updateCaseStatus(alertId, status, basisType, description) {
+    return this.request(`/alerts/partner/${alertId}/status`, {
+      method: 'PATCH',
+      body: { status, basisType, description }
+    });
+  }
+
+  // Partner — Get basis types for a given case category
+  async getPartnerBasisTypes(category) {
+    return this.request(`/alerts/partner/basis-types?category=${encodeURIComponent(category)}`, {
+      method: 'GET'
     });
   }
 
@@ -1105,9 +1159,15 @@ const api = {
   getTestimonialStats: apiService.getTestimonialStats.bind(apiService),
   updateUserProfileWithImage: apiService.updateUserProfileWithImage.bind(apiService),
   mobileUserRegisterStep4UploadImage: apiService.mobileUserRegisterStep4UploadImage.bind(apiService),
+  reportCase: apiService.reportCase.bind(apiService),
+  getUserCases: apiService.getUserCases.bind(apiService),
+  getUserCaseById: apiService.getUserCaseById.bind(apiService),
+  getPartnerCases: apiService.getPartnerCases.bind(apiService),
+  updateCaseStatus: apiService.updateCaseStatus.bind(apiService),
+  getPartnerCaseById: apiService.getPartnerCaseById.bind(apiService),
+  getPartnerBasisTypes: apiService.getPartnerBasisTypes.bind(apiService),
   request: apiService.request.bind(apiService),
 
 };
-
 
 export default api;

@@ -66,6 +66,7 @@ export default {
 
       if (path.includes('/profile')) return 'profile';
       if (path.includes('/report-case')) return 'report-case';
+      if (path.includes('/my-cases')) return 'my-cases';
       if (path.includes('/user-chat')) return 'user-chat';
       if (path.includes('/dashboard')) return 'home';
       return null;
@@ -90,6 +91,8 @@ export default {
         router.push('/mobile/user/profile');
       } else if (page === 'report-case') {
         router.push('/mobile/user/report-case');
+      } else if (page === 'my-cases') {
+        router.push('/mobile/user/my-cases');
       } else if (page === 'user-chat') {
         router.push('/mobile/user/user-chat');
       }
