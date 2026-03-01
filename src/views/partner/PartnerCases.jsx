@@ -220,7 +220,7 @@ export default {
             loading.value = true;
             error.value = '';
             try {
-                const response = await api.getPartnerCases({ limit: 100 });
+                const response = await api.getPartnerCases({ limit: 100, type: 'USER' });
                 if (response.success) {
                     cases.value = response.data.alerts;
                     statusCounts.value = response.data.statusCounts || {};

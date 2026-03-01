@@ -437,13 +437,27 @@ export default {
 
                             {/* Location */}
                             <div style={{ marginBottom: '1.25rem' }}>
-                                <label class="input-label">Location <span style={{ color: '#ef4444' }}>*</span></label>
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                    <input required type="text" value={formData.value.location} onInput={(e) => formData.value.location = e.target.value} placeholder="Enter address or use GPS" class="input-field" />
+                                <label class="input-label">Address / Landmark <span style={{ color: '#ef4444' }}>*</span></label>
+                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                                    <input required type="text" value={formData.value.location} onInput={(e) => formData.value.location = e.target.value} placeholder="e.g. Near Metro Pillar 12" class="input-field" />
                                     <button type="button" onClick={getLocation} style={{ padding: '0 1rem', background: '#4f46e510', border: '1.5px solid #4f46e520', borderRadius: '12px', color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}>
                                         <MapPinIcon style={{ width: '22px', height: '22px' }} />
                                     </button>
                                 </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label class="input-label" style={{ fontSize: '0.75rem', color: '#64748b' }}>Latitude</label>
+                                        <input type="number" step="any" value={formData.value.latitude} onInput={(e) => formData.value.latitude = parseFloat(e.target.value)} placeholder="0.0000" class="input-field" style={{ fontSize: '0.9rem' }} />
+                                    </div>
+                                    <div>
+                                        <label class="input-label" style={{ fontSize: '0.75rem', color: '#64748b' }}>Longitude</label>
+                                        <input type="number" step="any" value={formData.value.longitude} onInput={(e) => formData.value.longitude = parseFloat(e.target.value)} placeholder="0.0000" class="input-field" style={{ fontSize: '0.9rem' }} />
+                                    </div>
+                                </div>
+                                <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                                    * Lat/Lng will be used to route this case to the nearest police station.
+                                </p>
                             </div>
 
                             {/* Date Time */}

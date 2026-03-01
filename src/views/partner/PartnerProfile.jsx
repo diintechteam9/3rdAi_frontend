@@ -169,9 +169,9 @@ export default {
                             {saving.value ? (
                                 <span><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
                             ) : isEditing.value ? (
-                                <><span>💾</span> Save Photo</>
+                                <><span>💾</span> Save Changes</>
                             ) : (
-                                <><span>📷</span> Update Photo</>
+                                <><span>⚙️</span> Edit Profile</>
                             )}
                         </button>
                     )}
@@ -199,7 +199,7 @@ export default {
                         {/* Avatar */}
                         <div style="position: relative;">
                             <div style="width: 120px; height: 120px; background: white; border-radius: 50%; padding: 4px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 10;">
-                                {profileImagePreview.value && isEditing.value || partner.value?.profilePicture && !isEditing.value ? (
+                                {(profileImagePreview.value && isEditing.value) || (partner.value?.profilePicture && !isEditing.value) ? (
                                     <img
                                         src={isEditing.value ? profileImagePreview.value : partner.value.profilePicture}
                                         alt={partner.value?.name}
@@ -318,7 +318,7 @@ export default {
                                         </div>
                                         <div style="flex: 1;">
                                             <label style={labelStyle}>Years of Experience</label>
-                                            <div style="color: #1f2937; font-weight: 500; font-size: 15px;">{partner.value.experience ? `${partner.value.experience} years` : '—'}</div>
+                                            <div style="color: #1f2937; font-weight: 500; font-size: 15px;">{(partner.value.experience !== undefined && partner.value.experience !== null) ? `${partner.value.experience} years` : '—'}</div>
                                         </div>
                                     </div>
                                 </div>
