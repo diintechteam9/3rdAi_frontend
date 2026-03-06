@@ -34,7 +34,7 @@ export default {
         const data = await response.json();
 
         if (data.success) {
-          localStorage.setItem('partner_token', data.data.token);
+          localStorage.setItem('token_partner', data.data.token);
           localStorage.setItem('partner_data', JSON.stringify(data.data.partner));
           toast.success('Login successful!');
           router.push('/partner/dashboard');
@@ -70,7 +70,7 @@ export default {
         const data = await res.json();
 
         if (data.success) {
-          localStorage.setItem('partner_token', data.data.token);
+          localStorage.setItem('token_partner', data.data.token);
           localStorage.setItem('partner_data', JSON.stringify(data.data.partner));
           toast.success('Google login successful!');
           router.push('/partner/dashboard');

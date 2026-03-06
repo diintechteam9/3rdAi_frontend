@@ -59,7 +59,7 @@ function decodeToken(token) {
 
 function getAuthInfo() {
     const clientToken = localStorage.getItem('token_client');
-    const partnerToken = localStorage.getItem('partner_token');
+    const partnerToken = localStorage.getItem('token_partner');
     const adminToken = localStorage.getItem('token_admin') || localStorage.getItem('token_super_admin');
 
     // Safely get path, defaulting to empty string if not available

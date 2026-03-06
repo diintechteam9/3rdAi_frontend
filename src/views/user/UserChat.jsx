@@ -482,7 +482,7 @@ export default {
                             {partner.name}
                           </h3>
                           <p style="font-size: 13px; color: #6b7280; margin: 0;">
-                            {partner.specialization || 'Police Officer'}
+                            {partner.designation || 'Police Officer'}
                           </p>
                           <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
                             <span style={`font-size: 12px; font-weight: 500; color: ${getStatusColor(partner.onlineStatus)};`}>
@@ -625,7 +625,7 @@ export default {
                         ) : (
                           <>
                             <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                              {Array.isArray(selectedConversation.value.partnerId?.specialization) ? selectedConversation.value.partnerId.specialization.join(', ') : (selectedConversation.value.partnerId?.specialization || 'Police Officer')}
+                              {Array.isArray(selectedConversation.value.partnerId?.designation) ? selectedConversation.value.partnerId.designation.join(', ') : (selectedConversation.value.partnerId?.designation || 'Police Officer')}
                             </p>
                             <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: '#9ca3af' }}>
                               <span>⭐ {selectedConversation.value.partnerId?.rating?.toFixed?.(1) || '0.0'}</span>

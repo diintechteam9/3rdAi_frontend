@@ -23,7 +23,7 @@ export default {
             loading.value = true;
             error.value = '';
             try {
-                const token = localStorage.getItem('partner_token');
+                const token = localStorage.getItem('token_partner');
                 const res = await fetch(`${API_BASE_URL}/alerts/partner?limit=50&type=${activeTab.value}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });

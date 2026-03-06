@@ -19,7 +19,7 @@ export default {
 
         const getPartnerToken = () => {
             // Get partner token
-            return getTokenForRole('partner') || localStorage.getItem('partner_token');
+            return getTokenForRole('partner') || localStorage.getItem('token_partner');
         };
 
         const loadChats = async () => {

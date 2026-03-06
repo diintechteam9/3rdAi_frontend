@@ -43,7 +43,7 @@ export default {
 
     // WebSocket Connection
     const connectWebSocket = () => {
-      const token = localStorage.getItem('partner_token');
+      const token = localStorage.getItem('token_partner');
 
       if (!token) {
         console.error('❌ No partner token found');

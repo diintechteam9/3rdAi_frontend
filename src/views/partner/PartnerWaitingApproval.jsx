@@ -18,7 +18,7 @@ export default {
 
         const clearPendingData = () => {
             localStorage.removeItem('partner_pending_email');
-            localStorage.removeItem('partner_token');
+            localStorage.removeItem('token_partner');
             localStorage.removeItem('partner_data');
         };
 
@@ -44,7 +44,7 @@ export default {
 
                         if (data.data.token && data.data.partner) {
                             // ✅ Token mila → directly dashboard
-                            localStorage.setItem('partner_token', data.data.token);
+                            localStorage.setItem('token_partner', data.data.token);
                             localStorage.setItem('partner_data', JSON.stringify(data.data.partner));
                             localStorage.removeItem('partner_pending_email');
                             setTimeout(() => {
@@ -54,7 +54,7 @@ export default {
                             // ⚠️ Token nahi mila (fallback) → login page
                             setTimeout(() => {
                                 localStorage.removeItem('partner_pending_email');
-                                localStorage.removeItem('partner_token');
+                                localStorage.removeItem('token_partner');
                                 localStorage.removeItem('partner_data');
                                 router.push('/partner/login');
                             }, 2500);

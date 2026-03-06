@@ -531,7 +531,7 @@ const getRoleFromToken = (token) => {
       localStorage.getItem('token_admin') ||
       localStorage.getItem('token_client') ||
       localStorage.getItem('token_user') ||
-      localStorage.getItem('partner_token');
+      localStorage.getItem('token_partner');
     if (tokenToCheck) {
       const tokenParts = tokenToCheck.split('.');
       if (tokenParts.length === 3) {
@@ -549,7 +549,7 @@ const getRoleFromToken = (token) => {
 const isRoleAuthenticated = (role) => {
   if (!role) return false;
   if (role === 'partner') {
-    return !!localStorage.getItem('partner_token');
+    return !!localStorage.getItem('token_partner');
   }
   const token = localStorage.getItem(`token_${role}`);
   return !!token;

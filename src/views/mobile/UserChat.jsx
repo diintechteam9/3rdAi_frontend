@@ -45,7 +45,7 @@ export default {
 
     // WebSocket Connection
     const connectWebSocket = () => {
-      const token = localStorage.getItem('token_user'); // ✅ FIXED: Changed from 'partner_token' to 'token_user'
+      const token = localStorage.getItem('token_user'); // ✅ FIXED: Changed from 'token_partner' to 'token_user'
 
       if (!token) {
         console.error('❌ No user token found');
@@ -831,7 +831,7 @@ export default {
                             </span>
                           </div>
                           <p style="font-size: 13px; color: #6b7280; margin: 0 0 4px 0;">
-                            {partner.specialization || 'Police Officer'}
+                            {partner.designation || 'Police Officer'}
                           </p>
                           <div style="display: flex; gap: 12px; font-size: 12px; color: #9ca3af;">
                             <span>⭐ {partner.rating?.toFixed(1) || '0.0'}</span>
@@ -1082,7 +1082,7 @@ export default {
                       ) : (
                         <>
                           <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                            {Array.isArray(selectedConversation.value.otherUser?.specialization) ? selectedConversation.value.otherUser.specialization.join(', ') : (selectedConversation.value.otherUser?.specialization || 'Police Officer')}
+                            {Array.isArray(selectedConversation.value.otherUser?.designation) ? selectedConversation.value.otherUser.designation.join(', ') : (selectedConversation.value.otherUser?.designation || 'Police Officer')}
                           </p>
                           <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: '#9ca3af' }}>
                             <span>⭐ {selectedConversation.value.otherUser?.rating?.toFixed?.(1) || '0.0'}</span>
