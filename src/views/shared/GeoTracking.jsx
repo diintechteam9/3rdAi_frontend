@@ -62,20 +62,45 @@ function getAuthInfo() {
     const partnerToken = localStorage.getItem('partner_token');
     const adminToken = localStorage.getItem('token_admin') || localStorage.getItem('token_super_admin');
 
+    // Safely get path, defaulting to empty string if not available
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+
+    // Route-specific priority:
+    // If we are on a partner route, check partner token FIRST
+    if (path.includes('/partner') && partnerToken) {
+        const p = decodeToken(partnerToken);
+        const partnerId = p?.partnerId || p?.userId || p?.id;
+        console.log('[GeoTracking] Partner route detected, JWT decoded:', { partnerId, clientId: p?.clientId, role: p?.role });
+        return { token: partnerToken, role: 'partner', id: partnerId, clientId: p?.clientId };
+    }
+
+    // If we are on a client route, check client token FIRST
+    if (path.includes('/client') && clientToken) {
+        const p = decodeToken(clientToken);
+        return { token: clientToken, role: 'client', id: p?.userId || p?.id, city: p?.city || null };
+    }
+
+    // If we are on admin routes, check admin token FIRST
+    if ((path.includes('/admin') || path.includes('/super')) && adminToken) {
+        const p = decodeToken(adminToken);
+        return { token: adminToken, role: 'admin', id: p?.userId || p?.id };
+    }
+
+    // Fallbacks if no path matches or no specific token exists for that route:
     if (clientToken) {
         const p = decodeToken(clientToken);
         return { token: clientToken, role: 'client', id: p?.userId || p?.id, city: p?.city || null };
     }
     if (partnerToken) {
         const p = decodeToken(partnerToken);
-        // JWT stores Partner._id in userId/id field (not a separate partnerId)
-        // This matches Area.partnerId and Alert.assignedPartnerId
-        return { token: partnerToken, role: 'partner', id: p?.userId || p?.id, clientId: p?.clientId };
+        const partnerId = p?.partnerId || p?.userId || p?.id;
+        return { token: partnerToken, role: 'partner', id: partnerId, clientId: p?.clientId };
     }
     if (adminToken) {
         const p = decodeToken(adminToken);
         return { token: adminToken, role: 'admin', id: p?.userId || p?.id };
     }
+
     return { token: null, role: 'guest', id: null };
 }
 
@@ -101,6 +126,7 @@ export default defineComponent({
         const casesCoords = ref([]);
         const socketHandler = ref(null);
         const statsRef = ref({ total: 0, pending: 0, attended: 0, resolved: 0 });
+        const noAreaWarning = ref(false); // shown when partner has no assigned area
 
         // Auth info — determines what this user can see
         const auth = getAuthInfo();
@@ -112,15 +138,20 @@ export default defineComponent({
             isMounted && map.value && layers.value.boundaries;
 
         // ── Map init ──────────────────────────────────────────────────────────
-        // Default center = India. If areas exist, fitBounds overrides this.
-        // This is the correct fallback for this India-centric app.
+        // For partners: start at a neutral zoom so fitBounds shows their area correctly.
+        // For clients/admins: start at India view as fallback.
         const initMap = () => {
             if (map.value || !mapContainer.value) return;
 
             try {
+                // Partner: start zoomed in to Delhi/NCR region by default (fitBounds will override)
+                // Client/Admin: start at India center
+                const initialCenter = auth.role === 'partner' ? [28.6139, 77.2090] : [20.5937, 78.9629];
+                const initialZoom = auth.role === 'partner' ? 11 : 5;
+
                 const m = L.map(mapContainer.value, {
-                    center: [20.5937, 78.9629], // India center — overridden by fitBounds on data load
-                    zoom: 5,
+                    center: initialCenter,
+                    zoom: initialZoom,
                     fadeAnimation: false,
                     markerZoomAnimation: false,
                     zoomSnap: 0.25,  // finer zoom steps for fitBounds precision
@@ -145,42 +176,54 @@ export default defineComponent({
         };
 
         // ── Fit map to a Leaflet bounds object safely ──────────────────────────
-        // Always call this AFTER the geoLayer is added to its parent layerGroup
-        // so that getBounds() operates on DOM-rendered paths.
+        // Always call this AFTER the geoLayer is added to its parent layerGroup.
+        // ✅ FIX: Wait 200ms for Leaflet to fully render the polygon into the DOM
+        // before calling getBounds() — otherwise bounds come back invalid/empty.
         const fitToLayer = (geoLayer) => {
             if (!isReady() || !geoLayer) return;
-            try {
-                const bounds = geoLayer.getBounds();
-                // isValid() returns false for empty/degenerate bounds
-                if (bounds && bounds.isValid()) {
-                    map.value.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+            setTimeout(() => {
+                try {
+                    if (!isReady()) return;
+                    map.value.invalidateSize();   // ensure map knows its real dimensions
+                    const bounds = geoLayer.getBounds();
+                    // isValid() returns false for empty/degenerate bounds
+                    if (bounds && bounds.isValid()) {
+                        map.value.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+                        console.log('[GeoTracking] ✅ fitBounds applied to partner area');
+                    } else {
+                        console.warn('[GeoTracking] bounds invalid — polygon may have no coordinates');
+                    }
+                } catch (e) {
+                    console.warn('[GeoTracking] fitBounds failed:', e.message);
                 }
-            } catch (e) {
-                console.warn('[GeoTracking] fitBounds failed:', e.message);
-            }
-        };   // ← closing brace for fitToLayer
+            }, 200);
+        };
 
-        // ── Fetch & render areas (role-filtered, with fallback) ───────────────
+        // ── Fetch & render areas (role-filtered, NO fallback for partners) ──────
         const fetchAreas = async () => {
             try {
-                // Build role-specific query params
+                noAreaWarning.value = false;
+
+                // Build role-specific query params + always send auth token
                 const params = {};
+                const headers = auth.token ? { Authorization: `Bearer ${auth.token}` } : {};
+
                 if (auth.role === 'client') params.clientId = auth.id;
                 if (auth.role === 'partner') params.partnerId = auth.id;
                 // admin → no filter (sees all)
 
-                let { data } = await axios.get(`${API_BASE_URL}/areas`, { params });
-
-                // FALLBACK: If role-filtered query returns 0 areas (e.g. clientId/partnerId
-                // not yet assigned in DB after fresh KML import), load ALL areas so the map
-                // is never empty. This keeps the dashboard useful during initial setup.
-                if (data?.features?.length === 0 && (params.clientId || params.partnerId)) {
-                    console.warn('[GeoTracking] No areas matched filter — loading all areas as fallback');
-                    const fallback = await axios.get(`${API_BASE_URL}/areas`);
-                    data = fallback.data;
-                }
+                const { data } = await axios.get(`${API_BASE_URL}/areas`, { params, headers });
 
                 if (!isReady()) return;
+
+                // Partner with NO assigned area → show warning, do NOT load all areas
+                if (data?.features?.length === 0) {
+                    if (auth.role === 'partner') {
+                        console.warn('[GeoTracking] Partner has no assigned area yet.');
+                        noAreaWarning.value = true;
+                    }
+                    return; // do not render anything
+                }
 
                 if (data.type === 'FeatureCollection' && data.features.length > 0) {
                     layers.value.boundaries.clearLayers();
@@ -193,7 +236,7 @@ export default defineComponent({
                                 weight: 2,
                                 opacity: 0.9,
                                 fillColor: city === 'Delhi' ? '#fecaca' : '#bfdbfe',
-                                fillOpacity: auth.role === 'partner' ? 0.25 : 0.15
+                                fillOpacity: auth.role === 'partner' ? 0.35 : 0.15
                             };
                         },
                         onEachFeature: (feature, layer) => {
@@ -210,6 +253,7 @@ export default defineComponent({
                     if (toggles.value.boundaries && isReady()) {
                         layers.value.boundaries.addLayer(geoLayer);
                         // fitToLayer MUST be after addLayer so getBounds() works correctly
+                        // This auto-zooms the map to exactly the partner's area boundary
                         fitToLayer(geoLayer);
                     }
                 }
@@ -446,7 +490,10 @@ export default defineComponent({
         onMounted(async () => {
             isMounted = true;
             initMap();
-            await Promise.all([fetchAreas(), fetchCameras(), fetchCases()]);
+            // ✅ FIX: Fetch areas FIRST (sequential) so fitBounds runs on a ready map.
+            // Then fetch cameras & cases in parallel (they don't affect map zoom).
+            await fetchAreas();
+            await Promise.all([fetchCameras(), fetchCases()]);
             connectWebSocket();
         });
 
@@ -466,7 +513,7 @@ export default defineComponent({
 
         // ── Template ──────────────────────────────────────────────────────────
         return () => (
-            <div style="height: calc(100vh - 64px); display: flex; flex-direction: column; background: #f8fafc; padding: 20px; gap: 16px; box-sizing: border-box;">
+            <div style="height: 100%; display: flex; flex-direction: column; background: #f8fafc; padding: 14px 18px; gap: 10px; box-sizing: border-box; overflow: hidden;">
 
                 {/* ── Header ── */}
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
@@ -518,6 +565,17 @@ export default defineComponent({
                         </div>
                     ))}
                 </div>
+
+                {/* ── No-area warning for partners ── */}
+                {noAreaWarning.value && (
+                    <div style="background:#fef3c7; border:1.5px solid #fbbf24; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:14px; color:#92400e; font-weight:600;">
+                        <span style="font-size:22px;">⚠️</span>
+                        <div>
+                            <div>You have not been assigned to any area yet.</div>
+                            <div style="font-size:12px; font-weight:400; margin-top:2px; color:#b45309;">Please contact your admin/client to assign you to an area. The map will show your jurisdiction once assigned.</div>
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Map container — always rendered (never conditionally mounted) ── */}
                 <div

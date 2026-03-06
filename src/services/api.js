@@ -795,6 +795,18 @@ class ApiService {
     });
   }
 
+  async approveClient(id) {
+    return this.request(`/admin/clients/${id}/approve`, {
+      method: 'PATCH',
+    });
+  }
+
+  async rejectClient(id) {
+    return this.request(`/admin/clients/${id}/reject`, {
+      method: 'PATCH',
+    });
+  }
+
   async getAdminUsers(queryString = '') {
     return this.request(`/admin/users${queryString}`);
   }

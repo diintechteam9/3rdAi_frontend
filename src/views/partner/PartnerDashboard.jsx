@@ -486,8 +486,12 @@ export default {
         </div>
 
         {/* Main Content */}
-        <div style={`margin-left: ${sidebarCollapsed.value ? '80px' : '260px'}; padding-top: 64px; min-height: 100vh; transition: margin-left 0.3s ease;`}>
-          <main style={(activeTab.value === 'ai-police-chat' || activeTab.value === 'request' || activeTab.value === 'alert') ? 'padding: 0; height: calc(100vh - 64px);' : 'padding: 24px;'}>
+        <div style={`margin-left: ${sidebarCollapsed.value ? '80px' : '260px'}; padding-top: 64px; height: 100vh; overflow: hidden; transition: margin-left 0.3s ease;`}>
+          <main style={
+            (activeTab.value === 'ai-police-chat' || activeTab.value === 'request' || activeTab.value === 'alert' || activeTab.value === 'geo-tracking')
+              ? 'padding: 0; height: calc(100vh - 64px); overflow: hidden;'
+              : 'padding: 24px; height: calc(100vh - 64px); overflow-y: auto;'
+          }>
             {renderContent()}
           </main>
         </div>
@@ -498,7 +502,8 @@ export default {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
-          body { margin: 0; padding: 0; overflow-x: hidden; }
+          body { margin: 0; padding: 0; overflow: hidden; }
+          html { overflow: hidden; }
         `}</style>
       </div>
     );

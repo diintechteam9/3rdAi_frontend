@@ -43,7 +43,7 @@ export default {
           cityBoundary.value
         );
 
-        alert(response?.message || 'Registration successful! You can login now.');
+        alert(response?.message || 'Registration submitted! Please wait for admin approval before logging in.');
         router.push('/client/login');
       } catch (err) {
         error.value = err.message || 'Registration failed';
@@ -194,5 +194,6 @@ export default {
     );
   }
 };
+
 
 
