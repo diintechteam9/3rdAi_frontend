@@ -37,15 +37,28 @@ export default {
                     partnerName.value = data.data.name || '';
                     lastChecked.value = new Date().toLocaleTimeString();
 
-                    // ✅ APPROVED → auto-redirect to login
+                    // ✅ APPROVED → token save karo aur seedha DASHBOARD pe jao
                     if (data.data.verificationStatus === 'approved') {
                         clearInterval(pollTimer);
                         approvedRedirecting.value = true;
-                        // Wait briefly for animation, then redirect to login
-                        setTimeout(() => {
-                            clearPendingData();
-                            router.push('/partner/login');
-                        }, 2500);
+
+                        if (data.data.token && data.data.partner) {
+                            // ✅ Token mila → directly dashboard
+                            localStorage.setItem('partner_token', data.data.token);
+                            localStorage.setItem('partner_data', JSON.stringify(data.data.partner));
+                            localStorage.removeItem('partner_pending_email');
+                            setTimeout(() => {
+                                router.push('/partner/dashboard');
+                            }, 2500);
+                        } else {
+                            // ⚠️ Token nahi mila (fallback) → login page
+                            setTimeout(() => {
+                                localStorage.removeItem('partner_pending_email');
+                                localStorage.removeItem('partner_token');
+                                localStorage.removeItem('partner_data');
+                                router.push('/partner/login');
+                            }, 2500);
+                        }
                     }
 
                     // ❌ REJECTED → stop polling
@@ -236,7 +249,7 @@ export default {
                                 </h1>
                                 <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '14px', margin: '0 0 24px', lineHeight: '1.7' }}>
                                     Congratulations{partnerName.value ? `, ${partnerName.value}` : ''}! Your account has been approved.
-                                    <br />Redirecting you to the login page...
+                                    <br />Redirecting you to the dashboard...
                                 </p>
 
                                 <div style={{
@@ -245,7 +258,7 @@ export default {
                                     borderRadius: '12px', padding: '14px',
                                     color: '#6ee7b7', fontSize: '14px', fontWeight: '500'
                                 }}>
-                                    ✅ Redirecting to login page...
+                                    ✅ Redirecting to dashboard...
                                 </div>
 
                                 {/* Spinner */}
