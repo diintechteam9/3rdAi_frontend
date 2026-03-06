@@ -22,7 +22,7 @@ export default {
     // Fetch all available clients on mount
     const fetchClients = async () => {
       try {
-        const res = await api.request('/public/clients', { method: 'GET' });
+        const res = await api.request('/public/clients/778205', { method: 'GET' });
         clients.value = res.data || [];
         if (clients.value.length > 0) {
           clientId.value = clients.value[0].clientId; // default select first
@@ -40,7 +40,7 @@ export default {
       error.value = '';
 
       try {
-        const response = await api.request('/auth/user/login', {
+        const response = await api.request(`/auth/user/login/${clientId.value}`, {
           method: 'POST',
           body: {
             email: email.value,
@@ -128,7 +128,7 @@ export default {
       loading.value = true;
       error.value = '';
       try {
-        const { data } = await api.post('/auth/user/google', {
+        const { data } = await api.post(`/auth/user/google/${clientId.value}`, {
           idToken: response.credential,
           clientId: clientId.value
         });

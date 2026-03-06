@@ -86,7 +86,7 @@ export default {
             if (password.value !== confirmPassword.value) { error.value = 'Passwords do not match'; return; }
             loading.value = true;
             try {
-                await apiPost('/mobile/partner/register/step1', {
+                await apiPost(`/mobile/partner/register/step1/${clientId.value}`, {
                     email: email.value,
                     password: password.value,
                     clientId: clientId.value,
@@ -106,7 +106,7 @@ export default {
             error.value = '';
             loading.value = true;
             try {
-                await apiPost('/mobile/partner/register/step1/verify', {
+                await apiPost(`/mobile/partner/register/step1/verify/${clientId.value}`, {
                     email: email.value,
                     otp: emailOtp.value,
                     clientId: clientId.value,
@@ -124,7 +124,7 @@ export default {
         const resendEmailOtp = async () => {
             error.value = '';
             try {
-                await apiPost('/mobile/partner/register/resend-email-otp', {
+                await apiPost(`/mobile/partner/register/resend-email-otp/${clientId.value}`, {
                     email: email.value,
                     clientId: clientId.value,
                 });
@@ -139,7 +139,7 @@ export default {
             loading.value = true;
             error.value = '';
             try {
-                await apiPost('/mobile/partner/register/step1/google', {
+                await apiPost(`/mobile/partner/register/step1/google/${clientId.value}`, {
                     credential: response.credential,
                     clientId: clientId.value,
                 });
@@ -158,7 +158,7 @@ export default {
             error.value = '';
             loading.value = true;
             try {
-                await apiPost('/mobile/partner/register/step2', {
+                await apiPost(`/mobile/partner/register/step2/${clientId.value}`, {
                     email: email.value,
                     phone: phone.value,
                     otpMethod: otpMethod.value,
@@ -179,7 +179,7 @@ export default {
             error.value = '';
             loading.value = true;
             try {
-                await apiPost('/mobile/partner/register/step2/verify', {
+                await apiPost(`/mobile/partner/register/step2/verify/${clientId.value}`, {
                     email: email.value,
                     otp: phoneOtp.value,
                     clientId: clientId.value,
@@ -197,7 +197,7 @@ export default {
         const resendPhoneOtp = async () => {
             error.value = '';
             try {
-                await apiPost('/mobile/partner/register/step2/resend', {
+                await apiPost(`/mobile/partner/register/step2/resend/${clientId.value}`, {
                     email: email.value,
                     otpMethod: otpMethod.value,
                     clientId: clientId.value,
@@ -219,7 +219,7 @@ export default {
             }
             loading.value = true;
             try {
-                const data = await apiPost('/mobile/partner/register/step3', {
+                const data = await apiPost(`/mobile/partner/register/step3/${clientId.value}`, {
                     email: email.value,
                     clientId: clientId.value,
                     name, designation, area, state, policeId, experience,
@@ -305,7 +305,7 @@ export default {
         /* ── Fetch Clients on Mount ── */
         onMounted(async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/public/clients`);
+                const res = await fetch(`${API_BASE_URL}/public/clients/778205`);
                 const data = await res.json();
                 if (data.success && data.data?.length) {
                     activeClients.value = data.data;

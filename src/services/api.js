@@ -508,7 +508,7 @@ class ApiService {
   }
 
   async userRegister(email, password, profile, clientId) {
-    return this.request('/auth/user/register', {
+    return this.request(`/auth/user/register/${clientId}`, {
       method: 'POST',
       body: { email, password, profile, clientId },
     });
@@ -520,35 +520,35 @@ class ApiService {
 
   // Mobile User Registration
   async mobileUserRegisterStep1(email, password, clientId) {
-    return this.request('/mobile/user/register/step1', {
+    return this.request(`/mobile/user/register/step1/${clientId}`, {
       method: 'POST',
       body: { email, password, clientId },
     });
   }
 
   async mobileUserRegisterStep1Verify(email, otp, clientId) {
-    return this.request('/mobile/user/register/step1/verify', {
+    return this.request(`/mobile/user/register/step1/verify/${clientId}`, {
       method: 'POST',
       body: { email, otp, clientId },
     });
   }
 
   async mobileUserRegisterStep2(email, mobile, clientId) {
-    return this.request('/mobile/user/register/step2', {
+    return this.request(`/mobile/user/register/step2/${clientId}`, {
       method: 'POST',
       body: { email, mobile, clientId, otpMethod: 'whatsapp' }, // Default to whatsapp
     });
   }
 
   async mobileUserRegisterStep2Verify(email, otp, clientId) {
-    return this.request('/mobile/user/register/step2/verify', {
+    return this.request(`/mobile/user/register/step2/verify/${clientId}`, {
       method: 'POST',
       body: { email, otp, clientId },
     });
   }
 
   async mobileUserRegisterStep3(email, profileData, imageFileName, imageContentType, clientId) {
-    return this.request('/mobile/user/register/step3', {
+    return this.request(`/mobile/user/register/step3/${clientId}`, {
       method: 'POST',
       body: {
         email,

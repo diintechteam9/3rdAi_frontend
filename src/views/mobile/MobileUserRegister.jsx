@@ -329,7 +329,7 @@ export default {
     // Fetch Default Client and Load Google Script
     onMounted(async () => {
       try {
-        const response = await api.request('/public/clients');
+        const response = await api.request('/public/clients/778205');
         if (response.success && response.data && response.data.length > 0) {
           activeClients.value = response.data;
           DEFAULT_CLIENT_ID.value = response.data[0].clientId;

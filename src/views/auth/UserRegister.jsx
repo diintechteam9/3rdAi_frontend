@@ -20,7 +20,7 @@ export default {
 
     const fetchClients = async () => {
       try {
-        const res = await api.request('/public/clients', { method: 'GET' });
+        const res = await api.request('/public/clients/778205', { method: 'GET' });
         clients.value = res.data || [];
         if (clients.value.length > 0) {
           clientId.value = clients.value[0].clientId;
