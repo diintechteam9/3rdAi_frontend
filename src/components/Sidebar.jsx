@@ -1,7 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuth } from '../store/auth.js';
-import logo from '../assets/logo.png';
 
 // Create a shared sidebar state that can be accessed globally
 const sidebarState = ref({
@@ -160,7 +159,7 @@ export default {
             <div style={{ display: 'flex', justifyContent: sidebarState.value.isCollapsed ? 'center' : 'space-between', alignItems: 'center', marginBottom: sidebarState.value.isCollapsed ? '0.5rem' : '1rem', flexDirection: sidebarState.value.isCollapsed ? 'column' : 'row', gap: sidebarState.value.isCollapsed ? '0.5rem' : '0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: sidebarState.value.isCollapsed ? 0 : 1, justifyContent: sidebarState.value.isCollapsed ? 'center' : 'flex-start', flexDirection: sidebarState.value.isCollapsed ? 'column' : 'row' }}>
                 <img
-                  src={logo}
+                  src="/logo.png"
                   alt="3rdAI Logo"
                   style={{
                     width: sidebarState.value.isCollapsed ? '60px' : '80px',

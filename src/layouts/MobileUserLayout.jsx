@@ -2,7 +2,6 @@ import { RouterView } from 'vue-router';
 import { useAuth } from '../store/auth.js';
 import { useRouter } from 'vue-router';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
-import logo from '../assets/logo.png';
 import {
   Bars3Icon,
   XMarkIcon,
@@ -144,7 +143,7 @@ export default {
             {!(sidebarCollapsed.value && !isMobile.value) ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <img
-                  src={logo}
+                  src="/logo.png"
                   alt="3rdAI Logo"
                   style={{
                     width: '45px',

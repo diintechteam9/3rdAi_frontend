@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue'; // Added watch
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeftIcon, MapPinIcon, PhotoIcon, VideoCameraIcon, ArrowRightIcon, ExclamationTriangleIcon, ShieldExclamationIcon, EyeSlashIcon, MegaphoneIcon, BanknotesIcon, FireIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import api from '../../services/api.js';
@@ -11,6 +11,10 @@ export default {
         const router = useRouter();
         const caseType = ref(route.query.type || '');
         const activeMainTab = ref('report');
+
+        // Dynamic Fields
+        const dynamicFormFields = ref([]);
+        const isFetchingForm = ref(false);
 
         const casesList = [
             { id: 'robbery', name: 'Robbery', icon: BanknotesIcon, color: '#dc2626', description: 'Report an armed robbery or holdup' },
@@ -34,52 +38,8 @@ export default {
             isAnonymous: false,
             media: [], // would store files
 
-            // Snatching
-            snatchingType: '',
-            itemStolen: '',
-            estimatedValue: '',
-            numberOfAttackers: '',
-            weaponUsed: 'No',
-            vehicleUsed: '',
-            injuryHappened: 'No',
-
-            // Theft
-            theftType: '',
-            // itemStolen (shared)
-            // estimatedValue (shared)
-            cctvNearby: 'No',
-            suspectSeen: 'No',
-            vehicleType: '',
-            numberPlate: '',
-            vehicleColor: '',
-
-            // Harassment / Suspicious
-            incidentType: '',
-            personDescription: '',
-            vehicleDescription: '',
-            repeatedIncident: 'No',
-
-            // Accident
-            accidentType: '',
-            injuries: 'No',
-            ambulanceRequired: 'No',
-            vehiclesInvolved: '',
-            roadBlocked: 'No',
-
-            // Camera / Safety Issue
-            issueType: '',
-            sinceWhen: '',
-
-            // Custom Title
-            incidentTitle: '',
-
-            // Robbery
-            robberyWeaponUsed: 'No',
-            robberyInjury: 'No',
-            robberySuspectCount: '',
-
-            // Emergency
-            emergencyType: ''
+            // Dynamic data object populated via API
+            dynamicData: {}
         });
 
         const caseNames = {
@@ -129,6 +89,36 @@ export default {
             formData.value.media = [...formData.value.media, ...files];
         };
 
+        // Fetch dynamic form fields whenever the caseType changes
+        watch(caseType, async (newType) => {
+            if (!newType) {
+                dynamicFormFields.value = [];
+                formData.value.dynamicData = {};
+                return;
+            }
+
+            isFetchingForm.value = true;
+            try {
+                // Fetch dynamic fields from the backend
+                const response = await api.getMobileCaseForm(newType);
+                if (response?.data?.specificFields) {
+                    dynamicFormFields.value = response.data.specificFields;
+
+                    // Initialize empty state for all new dynamic fields
+                    const newDynamicData = {};
+                    response.data.specificFields.forEach(f => {
+                        newDynamicData[f.name] = ''; // Blank out 
+                    });
+                    formData.value.dynamicData = newDynamicData;
+                }
+            } catch (err) {
+                console.error("Failed to load dynamic fields:", err);
+                alert("Could not load form fields. Please check your connection.");
+            } finally {
+                isFetchingForm.value = false;
+            }
+        });
+
         const submitCase = async () => {
             loading.value = true;
             try {
@@ -144,7 +134,10 @@ export default {
                     // ── Full form data stored as metadata ──
                     formData: {
                         type: caseType.value,
-                        ...formData.value
+                        ...formData.value.dynamicData, // Insert dynamic user inputs
+                        description: formData.value.description,
+                        isAnonymous: formData.value.isAnonymous,
+                        dateTime: formData.value.dateTime
                     }
                 };
 
@@ -429,6 +422,11 @@ export default {
                             <MyCases />
                         )}
                     </>
+                ) : isFetchingForm.value ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh' }}>
+                        <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                        <p style={{ marginTop: '1rem', color: '#64748b', fontWeight: '600' }}>Loading Incident Form...</p>
+                    </div>
                 ) : (
                     <form class="form-container" onSubmit={(e) => { e.preventDefault(); submitCase(); }}>
                         {/* Common Fields */}
@@ -503,253 +501,61 @@ export default {
                         </div>
 
                         {/* Type Specific Fields */}
-                        <div class="form-section">
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 1.5rem 0', color: '#1e293b' }}>Additional Info</h2>
+                        {/* Type Specific Dynamic Fields from Backend API */}
+                        {dynamicFormFields.value.length > 0 && (
+                            <div class="form-section" style={{ animation: 'slideUp 0.3s ease-out' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 1.5rem 0', color: '#1e293b' }}>Additional Info</h2>
 
-                            {/* ===================== SNATCHING ===================== */}
-                            {caseType.value === 'snatching' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Snatching Type <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.snatchingType} onChange={(e) => formData.value.snatchingType = e.target.value} class="input-field">
-                                            <option value="">Select type</option>
-                                            <option value="Mobile">Mobile</option>
-                                            <option value="Chain">Chain</option>
-                                            <option value="Bag">Bag</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Item Stolen <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <input required type="text" value={formData.value.itemStolen} onInput={(e) => formData.value.itemStolen = e.target.value} class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Estimated Value (₹)</label>
-                                        <input type="number" value={formData.value.estimatedValue} onInput={(e) => formData.value.estimatedValue = e.target.value} class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Number of Attackers</label>
-                                        <input type="number" value={formData.value.numberOfAttackers} onInput={(e) => formData.value.numberOfAttackers = e.target.value} class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Weapon Used?</label>
-                                        <select value={formData.value.weaponUsed} onChange={(e) => formData.value.weaponUsed = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Vehicle Used by Attacker</label>
-                                        <select value={formData.value.vehicleUsed} onChange={(e) => formData.value.vehicleUsed = e.target.value} class="input-field">
-                                            <option value="">Select vehicle</option>
-                                            <option value="Bike">Bike</option>
-                                            <option value="Car">Car</option>
-                                            <option value="On foot">On foot</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Injury Happened?</label>
-                                        <select value={formData.value.injuryHappened} onChange={(e) => formData.value.injuryHappened = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                </>
-                            )}
+                                {dynamicFormFields.value.map((field) => (
+                                    <div key={field.name} style={{ marginBottom: '1.25rem' }}>
+                                        <label class="input-label">
+                                            {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+                                        </label>
 
-                            {/* ===================== THEFT ===================== */}
-                            {caseType.value === 'theft' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Theft Type <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.theftType} onChange={(e) => formData.value.theftType = e.target.value} class="input-field">
-                                            <option value="">Select type</option>
-                                            <option value="Vehicle">Vehicle</option>
-                                            <option value="House">House</option>
-                                            <option value="Shop">Shop</option>
-                                            <option value="Pickpocket">Pickpocket</option>
-                                        </select>
+                                        {field.type === 'select' ? (
+                                            <select
+                                                required={field.required}
+                                                value={formData.value.dynamicData[field.name] || ''}
+                                                onChange={(e) => formData.value.dynamicData[field.name] = e.target.value}
+                                                class="input-field"
+                                            >
+                                                <option value="">Select {field.label.toLowerCase()}</option>
+                                                {field.options?.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        ) : field.type === 'textarea' ? (
+                                            <textarea
+                                                required={field.required}
+                                                rows="3"
+                                                value={formData.value.dynamicData[field.name] || ''}
+                                                onInput={(e) => formData.value.dynamicData[field.name] = e.target.value}
+                                                placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                class="input-field"
+                                                style={{ resize: 'none' }}
+                                            ></textarea>
+                                        ) : field.type === 'number' ? (
+                                            <input
+                                                type="number"
+                                                required={field.required}
+                                                value={formData.value.dynamicData[field.name] || ''}
+                                                onInput={(e) => formData.value.dynamicData[field.name] = e.target.value}
+                                                class="input-field"
+                                            />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                required={field.required}
+                                                value={formData.value.dynamicData[field.name] || ''}
+                                                onInput={(e) => formData.value.dynamicData[field.name] = e.target.value}
+                                                placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                class="input-field"
+                                            />
+                                        )}
                                     </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Item Stolen <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <input required type="text" value={formData.value.itemStolen} onInput={(e) => formData.value.itemStolen = e.target.value} class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Estimated Value (₹)</label>
-                                        <input type="number" value={formData.value.estimatedValue} onInput={(e) => formData.value.estimatedValue = e.target.value} class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">CCTV Nearby?</label>
-                                        <select value={formData.value.cctvNearby} onChange={(e) => formData.value.cctvNearby = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Suspect Seen?</label>
-                                        <select value={formData.value.suspectSeen} onChange={(e) => formData.value.suspectSeen = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-
-                                    {formData.value.theftType === 'Vehicle' && (
-                                        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginTop: '1rem' }}>
-                                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '800', color: '#1e293b' }}>Vehicle Details</h3>
-                                            <div style={{ marginBottom: '1.25rem' }}>
-                                                <label class="input-label">Vehicle Type (e.g. Car, Bike)</label>
-                                                <input type="text" value={formData.value.vehicleType} onInput={(e) => formData.value.vehicleType = e.target.value} class="input-field" style={{ background: 'white' }} />
-                                            </div>
-                                            <div style={{ marginBottom: '1.25rem' }}>
-                                                <label class="input-label">Number Plate</label>
-                                                <input type="text" value={formData.value.numberPlate} onInput={(e) => formData.value.numberPlate = e.target.value} class="input-field" style={{ background: 'white' }} />
-                                            </div>
-                                            <div style={{ marginBottom: '0' }}>
-                                                <label class="input-label">Color</label>
-                                                <input type="text" value={formData.value.vehicleColor} onInput={(e) => formData.value.vehicleColor = e.target.value} class="input-field" style={{ background: 'white' }} />
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
-                            {/* ===================== HARASSMENT ===================== */}
-                            {caseType.value === 'harassment' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Incident Type <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.incidentType} onChange={(e) => formData.value.incidentType = e.target.value} class="input-field">
-                                            <option value="">Select type</option>
-                                            <option value="Harassment">Harassment</option>
-                                            <option value="Stalking">Stalking</option>
-                                            <option value="Suspicious person">Suspicious person</option>
-                                            <option value="Suspicious vehicle">Suspicious vehicle</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Person Description</label>
-                                        <textarea rows="3" value={formData.value.personDescription} onInput={(e) => formData.value.personDescription = e.target.value} placeholder="Height, clothes, visible marks..." class="input-field" style={{ resize: 'none' }}></textarea>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Vehicle Description (If any)</label>
-                                        <textarea rows="2" value={formData.value.vehicleDescription} onInput={(e) => formData.value.vehicleDescription = e.target.value} placeholder="Type, color, number plate..." class="input-field" style={{ resize: 'none' }}></textarea>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Repeated Incident?</label>
-                                        <select value={formData.value.repeatedIncident} onChange={(e) => formData.value.repeatedIncident = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* ===================== ACCIDENT ===================== */}
-                            {caseType.value === 'accident' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Accident Type <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.accidentType} onChange={(e) => formData.value.accidentType = e.target.value} class="input-field">
-                                            <option value="">Select type</option>
-                                            <option value="Bike">Bike</option>
-                                            <option value="Car">Car</option>
-                                            <option value="Hit & run">Hit & run</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Injuries? <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.injuries} onChange={(e) => formData.value.injuries = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Ambulance Required?</label>
-                                        <select value={formData.value.ambulanceRequired} onChange={(e) => formData.value.ambulanceRequired = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Vehicles Involved</label>
-                                        <input type="text" value={formData.value.vehiclesInvolved} onInput={(e) => formData.value.vehiclesInvolved = e.target.value} placeholder="e.g. 1 Car, 1 Bike" class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Road Blocked?</label>
-                                        <select value={formData.value.roadBlocked} onChange={(e) => formData.value.roadBlocked = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* ===================== CAMERA / SAFETY ISSUE ===================== */}
-                            {caseType.value === 'camera_issue' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Issue Type <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.issueType} onChange={(e) => formData.value.issueType = e.target.value} class="input-field">
-                                            <option value="">Select type</option>
-                                            <option value="Camera not working">Camera not working</option>
-                                            <option value="No camera">No camera</option>
-                                            <option value="Blind spot">Blind spot</option>
-                                            <option value="Street light not working">Street light not working</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Since When</label>
-                                        <input type="text" value={formData.value.sinceWhen} onInput={(e) => formData.value.sinceWhen = e.target.value} placeholder="e.g. 2 days, Since yesterday" class="input-field" />
-                                    </div>
-                                </>
-                            )}
-
-                            {/* ===================== ROBBERY ===================== */}
-                            {caseType.value === 'robbery' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Incident Title <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <input required type="text" value={formData.value.incidentTitle} onInput={(e) => formData.value.incidentTitle = e.target.value} placeholder="e.g. Armed robbery at store" class="input-field" />
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Weapon Used?</label>
-                                        <select value={formData.value.robberyWeaponUsed} onChange={(e) => formData.value.robberyWeaponUsed = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Injury Happened?</label>
-                                        <select value={formData.value.robberyInjury} onChange={(e) => formData.value.robberyInjury = e.target.value} class="input-field">
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Suspect Count</label>
-                                        <input type="number" value={formData.value.robberySuspectCount} onInput={(e) => formData.value.robberySuspectCount = e.target.value} class="input-field" />
-                                    </div>
-                                </>
-                            )}
-
-                            {/* ===================== EMERGENCY ===================== */}
-                            {caseType.value === 'unidentified_emergency' && (
-                                <>
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">Emergency Type <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <select required value={formData.value.emergencyType} onChange={(e) => formData.value.emergencyType = e.target.value} class="input-field">
-                                            <option value="">Select type</option>
-                                            <option value="Dead Body">Dead Body</option>
-                                            <option value="Unconscious Person">Unconscious Person</option>
-                                            <option value="Suspicious Object">Suspicious Object</option>
-                                            <option value="Unknown Person">Unknown Person</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                </>
-                            )}
-
-                        </div>
+                                ))}
+                            </div>
+                        )}
 
                         <button type="submit" disabled={loading.value} class="submit-btn">
                             {loading.value ? (

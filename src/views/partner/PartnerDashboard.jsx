@@ -1,5 +1,4 @@
 import { ref, onMounted, computed, watch } from 'vue';
-import logo from '../../assets/logo.png';
 import PartnerAIChat from './PartnerAIChat.jsx';
 import PartnerProfile from './PartnerProfile.jsx';
 import PartnerAlerts from './PartnerAlerts.jsx';
@@ -333,7 +332,7 @@ export default {
           <div style="display: flex; align-items: center; justify-content: center; height: 120px; padding: 0 24px; border-bottom: 1px solid #2d2d3e; margin: 0; position: sticky; top: 0; background: inherit; z-index: 2;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
               <img
-                src={logo}
+                src="/logo.png"
                 alt="3rdAI Logo"
                 style="width: 80px; height: 80px; border-radius: 10px; object-fit: contain;"
               />

@@ -663,6 +663,13 @@ class ApiService {
     });
   }
 
+  // Get Dynamic Mobile Form Details
+  async getMobileCaseForm(caseType) {
+    return this.request(`/mobile/cases/form/${caseType}`, {
+      method: 'GET'
+    });
+  }
+
   // Get User's Own Cases
   async getUserCases() {
     return this.request('/alerts/user', {
@@ -1172,6 +1179,7 @@ const api = {
   updateUserProfileWithImage: apiService.updateUserProfileWithImage.bind(apiService),
   mobileUserRegisterStep4UploadImage: apiService.mobileUserRegisterStep4UploadImage.bind(apiService),
   reportCase: apiService.reportCase.bind(apiService),
+  getMobileCaseForm: apiService.getMobileCaseForm.bind(apiService),
   getUserCases: apiService.getUserCases.bind(apiService),
   getUserCaseById: apiService.getUserCaseById.bind(apiService),
   getPartnerCases: apiService.getPartnerCases.bind(apiService),
