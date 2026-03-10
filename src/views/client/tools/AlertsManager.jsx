@@ -48,7 +48,7 @@ export default {
         const handleCreate = async () => {
             formError.value = '';
             if (!form.value.title.trim() || !form.value.message.trim()) {
-                formError.value = 'Title aur Message dono required hain.';
+                formError.value = 'Both Title and Message are required.';
                 return;
             }
             submitting.value = true;
@@ -60,7 +60,7 @@ export default {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast('✅ Alert send hua!', 'success');
+                    showToast('✅ Alert sent successfully!', 'success');
                     form.value = { title: '', message: '', priority: 'medium' };
                     await fetchAlerts();
                 } else {
@@ -91,7 +91,7 @@ export default {
 
         // ── Delete alert ─────────────────────────────────────────────────────────
         const handleDelete = async (alertId) => {
-            if (!confirm('Is alert ko delete karna hai?')) return;
+            if (!confirm('Are you sure you want to delete this alert?')) return;
             deletingId.value = alertId;
             try {
                 const res = await fetch(`${API_BASE_URL}/alerts/${alertId}`, {
@@ -135,13 +135,13 @@ export default {
                 {/* Header */}
                 <div style={{ marginBottom: '28px' }}>
                     <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 6px' }}>🔔 Alerts Manager</h1>
-                    <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Partners ko targeted alerts bhejein</p>
+                    <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Send targeted alerts and notifications to your partners</p>
                 </div>
 
                 {/* Create Form */}
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>➕</span> Naya Alert Create Karo
+                        <span>➕</span> Create New Alert
                     </h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                         <input
@@ -177,7 +177,7 @@ export default {
                                 cursor: submitting.value ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
                             }}
                         >
-                            {submitting.value ? 'Sending...' : '📤 Alert Send Karo'}
+                            {submitting.value ? 'Sending...' : '📤 Send Alert'}
                         </button>
                     </div>
                     {formError.value && (
@@ -189,7 +189,7 @@ export default {
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                         <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#374151', margin: 0 }}>
-                            Saare Alerts ({alerts.value.length})
+                            All Alerts ({alerts.value.length})
                         </h3>
                         <button onClick={fetchAlerts} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', fontSize: '13px', cursor: 'pointer' }}>
                             🔄 Refresh
@@ -201,7 +201,7 @@ export default {
                     ) : alerts.value.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '48px', background: 'white', borderRadius: '14px', border: '1px solid #e5e7eb', color: '#9ca3af' }}>
                             <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔔</div>
-                            <p style={{ margin: 0 }}>Koi alert nahi hai abhi. Upar se create karo.</p>
+                            <p style={{ margin: 0 }}>No alerts found. Create one above.</p>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

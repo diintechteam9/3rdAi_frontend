@@ -19,7 +19,8 @@ import {
   VideoCameraIcon,
   MoonIcon,
   UsersIcon,
-  DocumentPlusIcon
+  DocumentPlusIcon,
+  BookOpenIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -62,11 +63,11 @@ export default {
       if (path.includes('/cctv-surveillance')) return 'cctv';
       if (path.includes('/chat')) return 'chat';
       if (path.includes('/voice')) return 'voice';
-
       if (path.includes('/profile')) return 'profile';
       if (path.includes('/report-case')) return 'report-case';
       if (path.includes('/my-cases')) return 'my-cases';
       if (path.includes('/user-chat')) return 'user-chat';
+      if (path.includes('/information')) return 'information';
       if (path.includes('/dashboard')) return 'home';
       return null;
     });
@@ -85,7 +86,6 @@ export default {
         router.push('/mobile/user/chat');
       } else if (page === 'voice') {
         router.push('/mobile/user/voice');
-
       } else if (page === 'profile') {
         router.push('/mobile/user/profile');
       } else if (page === 'report-case') {
@@ -94,6 +94,8 @@ export default {
         router.push('/mobile/user/my-cases');
       } else if (page === 'user-chat') {
         router.push('/mobile/user/user-chat');
+      } else if (page === 'information') {
+        router.push('/mobile/user/information');
       }
     };
 
@@ -201,6 +203,7 @@ export default {
             {[
               { id: 'home', label: 'Home', icon: HomeIcon },
               { id: 'report-case', label: 'Report a Case', icon: DocumentPlusIcon },
+              { id: 'information', label: 'Information', icon: BookOpenIcon },
               { id: 'cctv', label: 'CCTV', icon: VideoCameraIcon },
               { id: 'voice', label: 'Voice', icon: MicrophoneIcon },
               { id: 'chat', label: 'Chat', icon: ChatBubbleLeftRightIcon },

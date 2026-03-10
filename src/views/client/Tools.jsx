@@ -6,7 +6,8 @@ import {
   BellIcon,
   SpeakerWaveIcon,
   ArrowRightIcon,
-  MicrophoneIcon
+  MicrophoneIcon,
+  BookOpenIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -37,7 +38,7 @@ export default {
         id: 3,
         name: 'Alerts',
         icon: BellIcon,
-        description: 'Partners ko targeted alerts aur notifications bhejein',
+        description: 'Send targeted alerts and notifications to your partners',
         route: '/client/tools/alerts',
         color: '#ef4444',
         category: 'Communication'
@@ -46,7 +47,7 @@ export default {
         id: 4,
         name: 'Announcements',
         icon: SpeakerWaveIcon,
-        description: 'Partners ke liye announcements aur updates publish karein',
+        description: 'Publish announcements and updates for your partners',
         route: '/client/tools/announcements',
         color: '#8b5cf6',
         category: 'Communication'
@@ -59,6 +60,15 @@ export default {
         route: '/client/tools/voice',
         color: '#f59e0b',
         category: 'AI Services'
+      },
+      {
+        id: 6,
+        name: 'Information Section',
+        icon: BookOpenIcon,
+        description: 'Manage banners, reels, safety videos and alerts shown to users',
+        route: '/client/tools/information',
+        color: '#0ea5e9',
+        category: 'Content'
       }
     ];
 
@@ -70,7 +80,8 @@ export default {
       const colors = {
         'Marketing': 'bg-success',
         'Analytics': 'bg-primary',
-        'Communication': 'bg-danger'
+        'Communication': 'bg-danger',
+        'Content': 'bg-info'
       };
       return colors[category] || 'bg-secondary';
     };

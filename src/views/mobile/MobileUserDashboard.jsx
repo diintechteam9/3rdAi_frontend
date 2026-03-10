@@ -8,7 +8,8 @@ import {
   FilmIcon,
   ArrowRightIcon,
   VideoCameraIcon,
-  UsersIcon
+  UsersIcon,
+  BookOpenIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -58,6 +59,14 @@ export default {
         description: 'View live CCTV coverage and Delhi zone monitoring map',
         route: '/mobile/user/cctv-surveillance',
         color: '#ef4444'
+      },
+      {
+        id: 7,
+        name: 'Information Section',
+        icon: BookOpenIcon,
+        description: 'Banners, safety videos, reels aur latest alerts dekho',
+        route: '/mobile/user/information',
+        color: '#0ea5e9'
       }
     ];
 

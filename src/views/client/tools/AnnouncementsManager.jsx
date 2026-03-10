@@ -48,7 +48,7 @@ export default {
         const handleCreate = async () => {
             formError.value = '';
             if (!form.value.title.trim() || !form.value.content.trim()) {
-                formError.value = 'Title aur Content dono required hain.';
+                formError.value = 'Both Title and Content are required.';
                 return;
             }
             submitting.value = true;
@@ -60,7 +60,7 @@ export default {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast('📢 Announcement publish hua!', 'success');
+                    showToast('📢 Announcement published successfully!', 'success');
                     form.value = { title: '', content: '' };
                     await fetchAnnouncements();
                 } else {
@@ -91,7 +91,7 @@ export default {
 
         // ── Delete ───────────────────────────────────────────────────────────────
         const handleDelete = async (annId) => {
-            if (!confirm('Is announcement ko delete karna hai?')) return;
+            if (!confirm('Are you sure you want to delete this announcement?')) return;
             deletingId.value = annId;
             try {
                 const res = await fetch(`${API_BASE_URL}/announcements/${annId}`, {
@@ -128,13 +128,13 @@ export default {
                 {/* Header */}
                 <div style={{ marginBottom: '28px' }}>
                     <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 6px' }}>📢 Announcements Manager</h1>
-                    <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Partners ke liye announcements publish karein</p>
+                    <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Publish announcements and updates for your partners</p>
                 </div>
 
                 {/* Create Form */}
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>➕</span> Naya Announcement Publish Karo
+                        <span>➕</span> Publish New Announcement
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <input
@@ -147,7 +147,7 @@ export default {
                             rows={4}
                             value={form.value.content}
                             onInput={e => form.value.content = e.target.value}
-                            placeholder="Announcement content — partners ko kya batana hai? *"
+                            placeholder="Announcement content — what do you want to inform partners? *"
                             style={{ padding: '11px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                         />
                         {formError.value && (
@@ -163,7 +163,7 @@ export default {
                                 cursor: submitting.value ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
                             }}
                         >
-                            {submitting.value ? 'Publishing...' : '📢 Announcement Publish Karo'}
+                            {submitting.value ? 'Publishing...' : '📢 Publish Announcement'}
                         </button>
                     </div>
                 </div>
@@ -172,7 +172,7 @@ export default {
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                         <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#374151', margin: 0 }}>
-                            Saare Announcements ({announcements.value.length})
+                            All Announcements ({announcements.value.length})
                         </h3>
                         <button onClick={fetchAnnouncements} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', fontSize: '13px', cursor: 'pointer' }}>
                             🔄 Refresh
@@ -184,7 +184,7 @@ export default {
                     ) : announcements.value.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '48px', background: 'white', borderRadius: '14px', border: '1px solid #e5e7eb', color: '#9ca3af' }}>
                             <div style={{ fontSize: '40px', marginBottom: '10px' }}>📭</div>
-                            <p style={{ margin: 0 }}>Koi announcement nahi. Upar se create karo.</p>
+                            <p style={{ margin: 0 }}>No announcements yet. Create one above.</p>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

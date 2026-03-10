@@ -241,6 +241,11 @@ const routes = [
         name: 'MobileCCTVSurveillance',
         component: () => import('../views/shared/CCTVSurveillance.jsx')
       },
+      {
+        path: 'information',
+        name: 'MobileInformationSection',
+        component: () => import('../views/mobile/InformationSection.jsx')
+      },
     ]
   },
 
@@ -441,6 +446,11 @@ const routes = [
         path: 'tools/voice',
         name: 'ClientVoicePage',
         component: () => import('../views/mobile/MobileVoicePage.jsx')
+      },
+      {
+        path: 'tools/information',
+        name: 'InformationManager',
+        component: () => import('../views/client/tools/InformationManager.jsx')
       },
       {
         path: 'geo-tracking',
