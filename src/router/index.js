@@ -385,7 +385,7 @@ const routes = [
       },
       {
         path: 'partner-approvals',
-        name: 'ClientPartnerApprovals',
+        name: 'Staff',
         component: () => import('../views/client/PartnerApprovals.jsx')
       },
 
@@ -451,6 +451,16 @@ const routes = [
         path: 'tools/information',
         name: 'InformationManager',
         component: () => import('../views/client/tools/InformationManager.jsx')
+      },
+      {
+        path: 'tools/case-setup',
+        name: 'CaseTypeManager',
+        component: () => import('../views/client/tools/CaseTypeManager.jsx')
+      },
+      {
+        path: 'all-areas',
+        name: 'ClientAllAreas',
+        component: () => import('../views/client/AllAreas.jsx')
       },
       {
         path: 'geo-tracking',

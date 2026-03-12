@@ -670,6 +670,11 @@ class ApiService {
     });
   }
 
+  // Get Case Types for mobile reporting
+  async getMobileCaseTypes() {
+    return this.request('/mobile/cases/types');
+  }
+
   // Get User's Own Cases
   async getUserCases() {
     return this.request('/alerts/user', {
@@ -1180,6 +1185,7 @@ const api = {
   mobileUserRegisterStep4UploadImage: apiService.mobileUserRegisterStep4UploadImage.bind(apiService),
   reportCase: apiService.reportCase.bind(apiService),
   getMobileCaseForm: apiService.getMobileCaseForm.bind(apiService),
+  getMobileCaseTypes: apiService.getMobileCaseTypes.bind(apiService),
   getUserCases: apiService.getUserCases.bind(apiService),
   getUserCaseById: apiService.getUserCaseById.bind(apiService),
   getPartnerCases: apiService.getPartnerCases.bind(apiService),

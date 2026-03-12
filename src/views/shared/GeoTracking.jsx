@@ -128,6 +128,9 @@ export default defineComponent({
         const statsRef = ref({ total: 0, pending: 0, attended: 0, resolved: 0 });
         const noAreaWarning = ref(false); // shown when partner has no assigned area
 
+        const allCameras = ref([]); // store all raw camera data
+        const areaHiddenLayers = ref([]); // store layers hidden during area filtering
+
         // Auth info — determines what this user can see
         const auth = getAuthInfo();
 
@@ -255,6 +258,9 @@ export default defineComponent({
                         // fitToLayer MUST be after addLayer so getBounds() works correctly
                         // This auto-zooms the map to exactly the partner's area boundary
                         fitToLayer(geoLayer);
+
+                        // Populate the dropdown list
+                        updateAvailableAreas(data);
                     }
                 }
             } catch (err) {
@@ -273,37 +279,78 @@ export default defineComponent({
                 if (!isReady()) return;
 
                 if (data.type === 'FeatureCollection') {
-                    layers.value.cameras.clearLayers();
-
-                    data.features.forEach(feature => {
-                        if (!feature.geometry?.coordinates) return;
-
-                        const latlng = [
-                            feature.geometry.coordinates[1],
-                            feature.geometry.coordinates[0]
-                        ];
-                        const radius = feature.properties?.radius || 300;
-
-                        const marker = L.marker(latlng).bindPopup(
-                            `<b>📷 Camera</b><br/>${feature.properties?.name || 'Unknown'}<br/>Radius: ${radius}m`
-                        );
-                        const circle = L.circle(latlng, {
-                            radius,
-                            color: '#10b981',
-                            weight: 1,
-                            fillOpacity: 0.08,
-                            fillColor: '#10b981'
-                        });
-
-                        if (toggles.value.cameras && isReady()) {
-                            layers.value.cameras.addLayer(marker);
-                            layers.value.cameras.addLayer(circle);
-                        }
-                    });
+                    allCameras.value = data.features; // save for filtering
+                    renderCameras(data.features);
                 }
             } catch (err) {
                 console.error('[GeoTracking] fetchCameras error:', err);
             }
+        };
+
+        const renderCameras = (features) => {
+            if (!isReady()) return;
+            layers.value.cameras.clearLayers();
+
+            features.forEach(feature => {
+                if (!feature.geometry?.coordinates) return;
+
+                const latlng = [
+                    feature.geometry.coordinates[1],
+                    feature.geometry.coordinates[0]
+                ];
+                const p = feature.properties || {};
+                const radius = p.radius || 300;
+                const statusColor = p.isActive ? '#10b981' : '#ef4444';
+
+                const popupContent = `
+                    <div style="min-width:260px; font-family: 'Inter', sans-serif; padding:4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-size:16px; font-weight:700; color:#1e293b;">📷 ${p.locationName || p.name}</span>
+                            <span style="background:${statusColor}20; color:${statusColor}; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid ${statusColor}40;">
+                                ${p.isActive ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                        </div>
+                        <div style="background:#f8fafc; border-radius:10px; padding:12px; border:1px solid #e2e8f0;">
+                            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+                                <tr style="border-bottom:1px solid #e2e8f0;">
+                                    <td style="padding:4px 0; color:#64748b; font-weight:500;">Camera ID</td>
+                                    <td style="padding:4px 0; color:#1e293b; font-weight:600; text-align:right;">${p.cameraId || 'N/A'}</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #e2e8f0;">
+                                    <td style="padding:4px 0; color:#64748b; font-weight:500;">Latitude</td>
+                                    <td style="padding:4px 0; color:#1e293b; font-weight:600; text-align:right;">${latlng[0].toFixed(6)}</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #e2e8f0;">
+                                    <td style="padding:4px 0; color:#64748b; font-weight:500;">Longitude</td>
+                                    <td style="padding:4px 0; color:#1e293b; font-weight:600; text-align:right;">${latlng[1].toFixed(6)}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        ${p.videoUrl ? `
+                            <a href="${p.videoUrl}" target="_blank" style="display:block; margin-top:12px; background:#4f46e5; color:white; text-align:center; padding:10px; border-radius:10px; text-decoration:none; font-weight:700; font-size:13px; box-shadow:0 4px 6px -1px rgba(79,70,229,0.2);">
+                                📹 Watch Live Stream
+                            </a>
+                        ` : `
+                            <div style="margin-top:10px; text-align:center; font-size:11px; color:#94a3b8;">Live Feed Unavailable</div>
+                        `}
+                    </div>
+                `;
+
+                const marker = L.marker(latlng).bindPopup(popupContent);
+                const circle = L.circle(latlng, {
+                    radius,
+                    color: statusColor,
+                    weight: 1,
+                    fillOpacity: 0.08,
+                    fillColor: statusColor
+                });
+
+                layers.value.cameras.addLayer(marker);
+                layers.value.cameras.addLayer(circle);
+
+                // Attach ID for direct lookup (standardized string)
+                marker.cameraId = String(p.cameraId || '');
+            });
         };
 
         // ── Render a single case feature ──────────────────────────────────────
@@ -419,7 +466,7 @@ export default defineComponent({
         };
 
         // ── Toggle handler ────────────────────────────────────────────────────
-        const handleToggle = (layerName) => {
+        const handleToggle = async (layerName) => {
             if (!isReady()) return;
 
             toggles.value[layerName] = !toggles.value[layerName];
@@ -431,12 +478,26 @@ export default defineComponent({
 
             if (toggles.value[layerName]) {
                 map.value.addLayer(l);
-                if (layerName === 'boundaries') fetchAreas();
-                if (layerName === 'cameras') fetchCameras();
-                if (layerName === 'cases') fetchCases();
+
+                // ── OPTIMIZATION: Only fetch if the layer group is empty ──
+                const isEmpty = l.getLayers().length === 0;
+
+                if (layerName === 'boundaries' && isEmpty) await fetchAreas();
+                if (layerName === 'cameras' && (isEmpty || allCameras.value.length === 0)) await fetchCameras();
+                if (layerName === 'cases' && isEmpty) await fetchCases();
+
+                // ── SYNC FIX: If a specific focus is active, re-apply it after re-enabling layer ──
+                if (selectedAreaId.value && (layerName === 'boundaries' || layerName === 'cameras')) {
+                    handleAreaChange({ target: { value: selectedAreaId.value } });
+
+                    if (selectedCameraId.value && layerName === 'cameras') {
+                        handleCameraChange({ target: { value: selectedCameraId.value } });
+                    }
+                }
             } else {
                 map.value.removeLayer(l);
-                l.clearLayers();
+                // DO NOT clearLayers() here if we want to preserve state when toggling off/on
+                // Just keep them in memory so re-enabling is instant and doesn't reset filters
                 if (layerName === 'heatmap') updateHeatmap();
             }
         };
@@ -486,6 +547,138 @@ export default defineComponent({
             });
         };
 
+        // ── Advanced Filtering & Zoom Logic ──────────────────────────────────
+        const selectedAreaId = ref('');
+        const selectedCameraId = ref('');
+        const availableAreas = ref([]);
+        const filteredCameras = ref([]);
+
+        // Extract areas from boundary features for the dropdown
+        const updateAvailableAreas = (data) => {
+            if (data?.features) {
+                availableAreas.value = data.features.map(f => ({
+                    // CRITICAL: Must use a STABLE ID (name or _id) to prevent resets during toggle
+                    id: f.properties?.name || f.id || f.properties?._id || 'unknown',
+                    name: f.properties?.name || 'Unnamed Area',
+                    feature: f
+                })).sort((a, b) => a.name.localeCompare(b.name));
+            }
+        };
+
+        const handleAreaChange = (e) => {
+            const areaId = e.target.value;
+            selectedAreaId.value = areaId;
+            selectedCameraId.value = ''; // Reset camera filter
+            filteredCameras.value = [];
+
+            // ── RESTORE STEP: Always show all areas before filtering ──
+            if (areaHiddenLayers.value.length > 0) {
+                areaHiddenLayers.value.forEach(l => l.addTo(map.value));
+                areaHiddenLayers.value = [];
+            }
+
+            if (!areaId) {
+                // Show all cameras when 'All Areas' is selected
+                renderCameras(allCameras.value);
+
+                const defaultCenter = auth.role === 'partner' ? [28.6139, 77.2090] : [20.5937, 78.9629];
+                const defaultZoom = auth.role === 'partner' ? 11 : 5;
+                map.value.setView(defaultCenter, defaultZoom);
+
+                // Re-fit to all boundaries
+                if (layers.value.boundaries) {
+                    const groupBounds = layers.value.boundaries.getBounds();
+                    if (groupBounds && groupBounds.isValid()) {
+                        map.value.fitBounds(groupBounds, { padding: [40, 40] });
+                    }
+                }
+                return;
+            }
+
+            let foundAreaLayer = null;
+
+            // 1. Filter Area Visibility
+            layers.value.boundaries.eachLayer(l => {
+                l.eachLayer(subLayer => {
+                    const featureName = subLayer.feature?.properties?.name;
+                    const selectedName = availableAreas.value.find(a => a.id === areaId)?.name;
+
+                    if (featureName === selectedName) {
+                        foundAreaLayer = subLayer;
+                        if (!map.value.hasLayer(subLayer)) {
+                            subLayer.addTo(map.value); // ensure it's visible
+                        }
+                        const bounds = subLayer.getBounds();
+                        if (bounds && bounds.isValid()) {
+                            map.value.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+                            subLayer.openPopup();
+                        }
+                    } else {
+                        // Hide non-selected areas
+                        areaHiddenLayers.value.push(subLayer);
+                        subLayer.removeFrom(map.value);
+                    }
+                });
+            });
+
+            // 2. Spatial Camera Filtering (Exact Point-in-Polygon)
+            if (foundAreaLayer) {
+                const areaPolygon = foundAreaLayer;
+
+                // Helper: Ray-casting algorithm for exact boundary check
+                const isPointInPolygon = (lat, lng, polyLayer) => {
+                    // Handle nested arrays (MultiPolygons or holes)
+                    const latlngs = polyLayer.getLatLngs();
+                    const checkInRing = (ring) => {
+                        let isInside = false;
+                        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                            const xi = ring[i].lat, yi = ring[i].lng;
+                            const xj = ring[j].lat, yj = ring[j].lng;
+                            const intersect = ((yi > lng) !== (yj > lng))
+                                && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+                            if (intersect) isInside = !isInside;
+                        }
+                        return isInside;
+                    };
+
+                    // Deep check for nested rings
+                    if (Array.isArray(latlngs[0]) && !latlngs[0].lat) {
+                        return latlngs.some(ring => checkInRing(ring));
+                    }
+                    return checkInRing(latlngs);
+                };
+
+                const camerasInArea = allCameras.value.filter(cam => {
+                    const lat = cam.geometry.coordinates[1];
+                    const lng = cam.geometry.coordinates[0];
+                    return isPointInPolygon(lat, lng, areaPolygon);
+                });
+
+                filteredCameras.value = camerasInArea.map(c => ({
+                    id: c.properties.cameraId,
+                    name: c.properties.locationName || c.properties.name || 'Unnamed Camera'
+                })).sort((a, b) => a.name.localeCompare(b.name));
+
+                // Update map to only show these cameras
+                renderCameras(camerasInArea);
+            }
+        };
+
+        const handleCameraChange = (e) => {
+            const camId = String(e.target.value || '');
+            selectedCameraId.value = camId;
+
+            if (!camId) return;
+
+            // Find marker in cameras layer group
+            layers.value.cameras.eachLayer(layer => {
+                if (layer instanceof L.Marker && String(layer.cameraId) === camId) {
+                    map.value.setView(layer.getLatLng(), 18);
+                    layer.openPopup();
+                }
+            });
+        };
+
         // ── Lifecycle ─────────────────────────────────────────────────────────
         onMounted(async () => {
             isMounted = true;
@@ -526,6 +719,41 @@ export default defineComponent({
                                 ? 'Showing your assigned area and cases'
                                 : 'All city areas, cases and partner assignments'}
                         </p>
+                    </div>
+
+                    {/* Advanced Filters */}
+                    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                        {/* Area Selector */}
+                        <div style="display:flex; align-items:center; gap:10px; background:white; padding:10px 16px; border-radius:14px; border:1.5px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.04); transition:all 0.3s ease;">
+                            <span style="font-size:14px; font-weight:700; color:#64748b;">📍 Area:</span>
+                            <select
+                                value={selectedAreaId.value}
+                                onChange={handleAreaChange}
+                                style="border:none; background:transparent; font-size:14px; font-weight:700; color:#1e293b; outline:none; cursor:pointer; min-width:180px; font-family:inherit;"
+                            >
+                                <option value="">All City Areas</option>
+                                {availableAreas.value.map(area => (
+                                    <option key={area.id} value={area.id}>{area.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Camera Selector (Only shown when an area is selected) */}
+                        {selectedAreaId.value && filteredCameras.value.length > 0 && (
+                            <div style="display:flex; align-items:center; gap:10px; background:#f0f9ff; padding:10px 16px; border-radius:14px; border:1.5px solid #bae6fd; box-shadow:0 2px 8px rgba(14,165,233,0.1); animation: slideIn 0.3s ease-out;">
+                                <span style="font-size:14px; font-weight:700; color:#0369a1;">📷 Camera:</span>
+                                <select
+                                    value={selectedCameraId.value}
+                                    onChange={handleCameraChange}
+                                    style="border:none; background:transparent; font-size:14px; font-weight:700; color:#0c4a6e; outline:none; cursor:pointer; min-width:200px; font-family:inherit;"
+                                >
+                                    <option value="">Select Camera ({filteredCameras.value.length})</option>
+                                    {filteredCameras.value.map(cam => (
+                                        <option key={cam.id} value={cam.id}>{cam.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     {/* Layer toggles */}

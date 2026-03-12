@@ -6,8 +6,10 @@ export default {
   name: 'ClientAllReports',
   setup() {
     const reports = ref([]);
+    const caseTypeMap = ref({});
     const loading = ref(false);
-    const selectedReport = ref(null); // Used for viewing details modal
+    const selectedReport = ref(null);
+    const updatingId = ref(null);
 
     const getToken = () =>
       localStorage.getItem('token_client') ||
@@ -17,6 +19,17 @@ export default {
     const fetchReports = async () => {
       loading.value = true;
       try {
+        // Fetch CaseTypes first for mapping
+        const ctRes = await fetch(`${API_BASE_URL}/client/case-types`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        const ctData = await ctRes.json();
+        if (ctData.success) {
+          const mapping = {};
+          ctData.data.caseTypes.forEach(ct => mapping[ct._id] = ct.name);
+          caseTypeMap.value = mapping;
+        }
+
         const res = await fetch(`${API_BASE_URL}/alerts?type=USER`, {
           headers: { Authorization: `Bearer ${getToken()}` }
         });
@@ -39,6 +52,7 @@ export default {
     };
 
     const getCaseName = (typeId) => {
+      if (caseTypeMap.value[typeId]) return caseTypeMap.value[typeId];
       const names = {
         'robbery': 'Robbery',
         'unidentified_emergency': 'Emergency / Unknown',
@@ -49,6 +63,40 @@ export default {
         'camera_issue': 'Camera / Safety Issue'
       };
       return names[typeId] || typeId || 'Other';
+    };
+
+    const handleDelete = async (id) => {
+      if (!confirm('Are you sure you want to delete this report?')) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/alerts/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          fetchReports();
+        }
+      } catch (e) { console.error('Delete error:', e); }
+    };
+
+    const handleStatusUpdate = async (id, newStatus) => {
+      updatingId.value = id;
+      try {
+        const res = await fetch(`${API_BASE_URL}/alerts/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+          fetchReports();
+        }
+      } catch (e) { console.error('Status update error:', e); } finally {
+        updatingId.value = null;
+      }
     };
 
     onMounted(fetchReports);
@@ -111,8 +159,26 @@ export default {
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => selectedReport.value = report} style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '14px', fontWeight: '600', cursor: 'pointer', padding: 0, transition: 'color 0.2s' }}>View Full Details →</button>
+                  <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <select
+                        value={report.status}
+                        onChange={(e) => handleStatusUpdate(report._id, e.target.value)}
+                        disabled={updatingId.value === report._id}
+                        style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
+                      >
+                        {['Reported', 'Under Review', 'Verified', 'Action Taken', 'Resolved', 'Rejected'].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleDelete(report._id)}
+                        style={{ background: 'white', border: '1px solid #fee2e2', color: '#ef4444', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                    <button onClick={() => selectedReport.value = report} style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '14px', fontWeight: '600', cursor: 'pointer', padding: 0, transition: 'color 0.2s' }}>Details →</button>
                   </div>
                 </div>
               );

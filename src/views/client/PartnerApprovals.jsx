@@ -9,8 +9,9 @@ export default {
         const allPartners = ref([]);
         const loading = ref(false);
         const actionLoading = ref(null); // partnerId jo process ho raha hai
-        const activeTab = ref('pending'); // pending | all
+        const activeTab = ref('pending'); // pending | approved | all
         const rejectModal = ref({ show: false, partnerId: null, partnerName: '', reason: '' });
+        const detailsModal = ref({ show: false, staff: null });
         const toast = ref({ show: false, msg: '', type: 'success' });
 
         const getToken = () => {
@@ -28,7 +29,7 @@ export default {
             loading.value = true;
             try {
                 const token = getToken();
-                const endpoint = activeTab.value === 'pending'
+                const endpoint = (activeTab.value === 'pending')
                     ? `${API_BASE_URL}/partners/pending`
                     : `${API_BASE_URL}/partners/all`;
 
@@ -98,6 +99,16 @@ export default {
             }
         };
 
+        const displayPartners = computed(() => {
+            if (activeTab.value === 'approved') {
+                return allPartners.value.filter(p => p.verificationStatus === 'approved');
+            }
+            if (activeTab.value === 'pending') {
+                return allPartners.value.filter(p => p.verificationStatus === 'pending');
+            }
+            return allPartners.value;
+        });
+
         const pendingCount = computed(() => allPartners.value.filter(p => p.verificationStatus === 'pending').length);
 
         onMounted(() => fetchPartners());
@@ -140,10 +151,10 @@ export default {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                         <div>
                             <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 4px' }}>
-                                Partner Approvals
+                                Staff
                             </h1>
                             <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-                                Review and manage partner registration requests
+                                Review and manage staff registration requests
                             </p>
                         </div>
                         {pendingCount.value > 0 && (
@@ -161,7 +172,8 @@ export default {
                 <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', padding: '4px', borderRadius: '12px', marginBottom: '20px', width: 'fit-content' }}>
                     {[
                         { id: 'pending', label: '⏳ Pending' },
-                        { id: 'all', label: '👥 All Partners' }
+                        { id: 'approved', label: '✅ Approved' },
+                        { id: 'all', label: '👥 All Staff' }
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -184,32 +196,40 @@ export default {
                 {loading.value ? (
                     <div style={{ textAlign: 'center', padding: '60px', color: '#9ca3af' }}>
                         <div class="spinner-border text-primary" />
-                        <p style={{ marginTop: '12px', fontSize: '14px' }}>Loading partners...</p>
+                        <p style={{ marginTop: '12px', fontSize: '14px' }}>Loading staff...</p>
                     </div>
-                ) : allPartners.value.length === 0 ? (
+                ) : displayPartners.value.length === 0 ? (
                     <div style={{
                         textAlign: 'center', padding: '60px',
                         background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb'
                     }}>
                         <div style={{ fontSize: '48px', marginBottom: '12px' }}>
-                            {activeTab.value === 'pending' ? '🎉' : '👥'}
+                            {activeTab.value === 'pending' ? '🎉' : activeTab.value === 'approved' ? '✅' : '👥'}
                         </div>
                         <h3 style={{ color: '#374151', margin: '0 0 8px', fontWeight: '600' }}>
-                            {activeTab.value === 'pending' ? 'No pending approvals!' : 'No partners found'}
+                            {activeTab.value === 'pending' ? 'No pending approvals!' : activeTab.value === 'approved' ? 'No approved staff found' : 'No staff found'}
                         </h3>
                         <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>
-                            {activeTab.value === 'pending' ? 'All registration requests have been handled.' : 'Partners will appear here once they register.'}
+                            {activeTab.value === 'pending' ? 'All registration requests have been handled.' : 'Staff will appear here once they are registered and managed.'}
                         </p>
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {allPartners.value.map(partner => (
-                            <div key={partner._id} style={{
-                                background: 'white', borderRadius: '14px',
-                                border: partner.verificationStatus === 'pending' ? '1px solid #fbbf24' : '1px solid #e5e7eb',
-                                padding: '20px 24px',
-                                display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap'
-                            }}>
+                        {displayPartners.value.map(partner => (
+                            <div key={partner._id}
+                                onClick={() => detailsModal.value = { show: true, staff: partner }}
+                                style={{
+                                    background: 'white', borderRadius: '14px',
+                                    border: partner.verificationStatus === 'pending' ? '1px solid #fbbf24' : '1px solid #e5e7eb',
+                                    padding: '20px 24px',
+                                    display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                }}
+                                onMouseenter={e => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
+                                onMouseleave={e => e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'}
+                            >
                                 {/* Avatar */}
                                 <div style={{
                                     width: '48px', height: '48px', borderRadius: '12px',
@@ -254,9 +274,9 @@ export default {
 
                                 {/* Action Buttons */}
                                 {partner.verificationStatus === 'pending' && (
-                                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                                         <button
-                                            onClick={() => approvePartner(partner._id, partner.name)}
+                                            onClick={(e) => { e.stopPropagation(); approvePartner(partner._id, partner.name); }}
                                             disabled={actionLoading.value === partner._id}
                                             style={{
                                                 padding: '9px 20px', borderRadius: '8px', border: 'none',
@@ -269,7 +289,7 @@ export default {
                                             {actionLoading.value === partner._id ? '⏳' : '✅ Approve'}
                                         </button>
                                         <button
-                                            onClick={() => openRejectModal(partner._id, partner.name)}
+                                            onClick={(e) => { e.stopPropagation(); openRejectModal(partner._id, partner.name); }}
                                             disabled={actionLoading.value === partner._id}
                                             style={{
                                                 padding: '9px 20px', borderRadius: '8px', border: '1px solid #fca5a5',
@@ -300,16 +320,16 @@ export default {
                 {/* Reject Reason Modal */}
                 {rejectModal.value.show && (
                     <div
-                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
                         onClick={() => rejectModal.value.show = false}
                     >
                         <div
                             style={{ background: 'white', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '440px', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <h3 style={{ margin: '0 0 8px', fontWeight: '700', color: '#111827' }}>Reject Partner</h3>
+                            <h3 style={{ margin: '0 0 8px', fontWeight: '700', color: '#111827' }}>Reject Staff</h3>
                             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 20px' }}>
-                                Rejecting <strong>{rejectModal.value.partnerName}</strong>. Optionally provide a reason.
+                                Rejecting staff member <strong>{rejectModal.value.partnerName}</strong>. Optionally provide a reason.
                             </p>
                             <textarea
                                 rows={3}
@@ -341,6 +361,108 @@ export default {
                                 >
                                     Confirm Reject
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Staff Details Modal */}
+                {detailsModal.value.show && detailsModal.value.staff && (
+                    <div
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', padding: '20px' }}
+                        onClick={() => detailsModal.value.show = false}
+                    >
+                        <div
+                            style={{
+                                background: 'white', borderRadius: '24px', width: '100%', maxWidth: '600px',
+                                boxShadow: '0 30px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
+                                animation: 'modalSlideUp 0.3s ease-out'
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <style>{`
+                                @keyframes modalSlideUp {
+                                    from { opacity: 0; transform: translateY(20px); }
+                                    to { opacity: 1; transform: translateY(0); }
+                                }
+                                .detail-row {
+                                    display: flex; border-bottom: 1px solid #f3f4f6; padding: 12px 0;
+                                }
+                                .detail-label {
+                                    width: 140px; color: #6b7280; font-size: 13px; font-weight: 500;
+                                }
+                                .detail-value {
+                                    flex: 1; color: #111827; font-size: 14px; font-weight: 600;
+                                }
+                            `}</style>
+
+                            {/* Profile Header */}
+                            <div style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', padding: '40px 32px', color: 'white', position: 'relative' }}>
+                                <button
+                                    onClick={() => detailsModal.value.show = false}
+                                    style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    ✕
+                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{
+                                        width: '80px', height: '80px', borderRadius: '20px', background: 'white',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                                        boxShadow: '0 10px 20px rgba(0,0,0,0.2)'
+                                    }}>
+                                        {detailsModal.value.staff.profilePicture ? (
+                                            <img src={detailsModal.value.staff.profilePicture} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <span style={{ color: '#6366f1', fontSize: '32px', fontWeight: '800' }}>
+                                                {(detailsModal.value.staff.name || 'S')[0].toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>{detailsModal.value.staff.name}</h2>
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                            {statusBadge(detailsModal.value.staff.verificationStatus)}
+                                            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '99px', fontSize: '11px' }}>
+                                                ID: {detailsModal.value.staff._id.slice(-6).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Details Body */}
+                            <div style={{ padding: '32px', maxHeight: '60vh', overflowY: 'auto' }}>
+                                <h4 style={{ margin: '0 0 16px', color: '#374151', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>Personal Information</h4>
+                                <div class="detail-row"><div class="detail-label">Full Name</div><div class="detail-value">{detailsModal.value.staff.name}</div></div>
+                                <div class="detail-row"><div class="detail-label">Email Address</div><div class="detail-value">{detailsModal.value.staff.email}</div></div>
+                                <div class="detail-row"><div class="detail-label">Designation</div><div class="detail-value">{detailsModal.value.staff.designation || 'Not provided'}</div></div>
+
+                                <h4 style={{ margin: '24px 0 16px', color: '#374151', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>Location & Office</h4>
+                                <div class="detail-row"><div class="detail-label">Area / Location</div><div class="detail-value">{detailsModal.value.staff.location?.area || '—'}</div></div>
+                                <div class="detail-row"><div class="detail-label">State / Region</div><div class="detail-value">{detailsModal.value.staff.location?.state || '—'}</div></div>
+                                <div class="detail-row"><div class="detail-label">Organization</div><div class="detail-value">{detailsModal.value.staff.clientId?.businessName || 'N/A'}</div></div>
+
+                                <h4 style={{ margin: '24px 0 16px', color: '#374151', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>Account Status</h4>
+                                <div class="detail-row"><div class="detail-label">Joined On</div><div class="detail-value">{new Date(detailsModal.value.staff.createdAt).toLocaleString()}</div></div>
+                                <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">{detailsModal.value.staff.verificationStatus.toUpperCase()}</div></div>
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div style={{ padding: '20px 32px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <button
+                                    onClick={() => detailsModal.value.show = false}
+                                    style={{ padding: '10px 24px', borderRadius: '10px', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: '600', cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+                                {detailsModal.value.staff.verificationStatus === 'pending' && (
+                                    <button
+                                        onClick={() => { detailsModal.value.show = false; approvePartner(detailsModal.value.staff._id, detailsModal.value.staff.name); }}
+                                        style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: '#10b981', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+                                    >
+                                        Approve Staff
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

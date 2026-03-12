@@ -57,13 +57,13 @@ export default {
 
         const getStatusColor = (status) => {
             switch (status) {
-                case 'Reported': return { bg: '#e0f2fe', text: '#0284c7' }; // light blue
-                case 'Under Review': return { bg: '#fef3c7', text: '#d97706' }; // light yellow/orange
-                case 'Verified': return { bg: '#ede9fe', text: '#7c3aed' }; // light purple
-                case 'Action Taken': return { bg: '#dbeafe', text: '#2563eb' }; // blue
-                case 'Resolved': return { bg: '#dcfce7', text: '#16a34a' }; // green
-                case 'Rejected': return { bg: '#fee2e2', text: '#dc2626' }; // red
-                default: return { bg: '#f1f5f9', text: '#475569' }; // gray
+                case 'Reported': return { bg: '#e0f2fe20', text: '#38bdf8' }; // light blue
+                case 'Under Review': return { bg: '#fef3c720', text: '#fbbf24' }; // light yellow/orange
+                case 'Verified': return { bg: '#ede9fe20', text: '#a78bfa' }; // light purple
+                case 'Action Taken': return { bg: '#dbeafe20', text: '#60a5fa' }; // blue
+                case 'Resolved': return { bg: '#dcfce720', text: '#4ade80' }; // green
+                case 'Rejected': return { bg: '#fee2e220', text: '#f87171' }; // red
+                default: return { bg: '#f1f5f920', text: '#94a3b8' }; // gray
             }
         };
 
@@ -90,25 +90,23 @@ export default {
         };
 
         return () => (
-            <div class="my-cases-container" style={{ padding: '0', background: '#f8fafc', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <>
                 <style>{`
                     .cases-summary-row {
                         display: flex;
                         gap: 0.75rem;
-                        padding: 1.25rem;
-                        background: white;
-                        border-bottom: 1px solid #f1f5f9;
-                        position: sticky;
-                        top: 0;
+                        padding: 1rem;
+                        background: transparent;
+                        border-bottom: 1px solid rgba(255,255,255,0.05);
                         z-index: 10;
                     }
                     .summary-box {
                         flex: 1;
-                        padding: 1rem 0.5rem;
-                        background: #f8fafc;
+                        padding: 0.75rem 0.5rem;
+                        background: rgba(255,255,255,0.03);
                         border-radius: 16px;
                         text-align: center;
-                        border: 1px solid #f1f5f9;
+                        border: 1px solid rgba(255,255,255,0.05);
                         cursor: pointer;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         display: flex;
@@ -117,69 +115,69 @@ export default {
                         gap: 2px;
                     }
                     .summary-box.active {
-                        background: white;
-                        border-color: #4f46e5;
-                        box-shadow: 0 10px 20px rgba(79, 70, 229, 0.1);
-                        transform: translateY(-2px);
+                        background: rgba(99, 102, 241, 0.1);
+                        border-color: #6366f1;
+                        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+                        transform: translateY(-1px);
                     }
                     .summary-val {
-                        font-size: 1.5rem;
+                        font-size: 1.25rem;
                         font-weight: 900;
-                        color: #1e293b;
+                        color: white;
                         line-height: 1;
                     }
-                    .summary-box.active .summary-val { color: #4f46e5; }
+                    .summary-box.active .summary-val { color: #818cf8; }
                     .summary-label {
-                        font-size: 0.7rem;
+                        font-size: 0.65rem;
                         font-weight: 800;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                         color: #94a3b8;
                     }
-                    .summary-box.active .summary-label { color: #4f46e5; }
+                    .summary-box.active .summary-label { color: #818cf8; }
 
                     .sub-tabs-container {
                         display: flex;
                         overflow-x: auto;
                         gap: 0.5rem;
-                        padding: 0.75rem 1.25rem;
+                        padding: 0.5rem 1rem;
                         scrollbar-width: none;
                     }
                     .sub-tabs-container::-webkit-scrollbar { display: none; }
                     .sub-tab {
-                        padding: 0.5rem 1rem;
+                        padding: 0.4rem 0.8rem;
                         border-radius: 10px;
-                        font-size: 0.75rem;
+                        font-size: 0.7rem;
                         font-weight: 700;
                         white-space: nowrap;
                         cursor: pointer;
-                        background: white;
-                        color: #64748b;
-                        border: 1px solid #f1f5f9;
+                        background: rgba(255,255,255,0.03);
+                        color: #94a3b8;
+                        border: 1px solid rgba(255,255,255,0.05);
                         transition: all 0.2s;
                     }
                     .sub-tab.active {
-                        background: #4f46e5;
+                        background: #6366f1;
                         color: white !important;
-                        border-color: #4f46e5;
-                        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+                        border-color: #6366f1;
+                        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
                     }
 
                     .case-card {
-                        background: white;
+                        background: rgba(255,255,255,0.02);
                         border-radius: 20px;
-                        padding: 1.25rem;
-                        margin: 0 1.25rem 1rem;
-                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-                        border: 1px solid #f1f5f9;
+                        padding: 1rem;
+                        margin: 0 1rem 0.75rem;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                        border: 1px solid rgba(255,255,255,0.04);
                         cursor: pointer;
                         transition: all 0.3s ease;
                         position: relative;
                         overflow: hidden;
                     }
-                    .case-card:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(0, 0, 0, 0.06); border-color: #4f46e5; }
-                    .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-                    .case-id { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+                    .case-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); border-color: rgba(99, 102, 241, 0.4); }
+                    .status-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+                    .case-id { font-size: 0.6rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
                 `}</style>
 
                 {/* Summary Boxes */}
@@ -220,21 +218,21 @@ export default {
                 <div style={{ flex: 1, overflowY: 'auto', paddingTop: activeCategory.value === 'closed' ? '1rem' : '0' }}>
                     {loading.value ? (
                         <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                            <div style={{ width: '32px', height: '32px', border: '3px solid #f1f5f9', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin-cycle 1s linear infinite', margin: '0 auto 1rem' }}></div>
+                            <div style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.05)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin-cycle 1s linear infinite', margin: '0 auto 1rem' }}></div>
                             <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>Syncing cases...</p>
                             <style>{`@keyframes spin-cycle { to { transform: rotate(360deg); } }`}</style>
                         </div>
                     ) : error.value ? (
-                        <div style={{ margin: '2rem', padding: '1.5rem', background: '#fee2e2', color: '#dc2626', borderRadius: '16px', textAlign: 'center', border: '1px solid #fecaca' }}>
+                        <div style={{ margin: '2rem', padding: '1.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
                             <p style={{ fontWeight: '700' }}>{error.value}</p>
-                            <button onClick={fetchCases} style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700' }}>Retry</button>
+                            <button onClick={fetchCases} style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: '#e11d48', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700' }}>Retry</button>
                         </div>
                     ) : filteredCases.value.length === 0 ? (
-                        <div style={{ margin: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '250px', backgroundColor: 'white', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
-                            <div style={{ fontSize: '3.5rem', marginBottom: '1rem', filter: 'grayscale(1) opacity(0.5)' }}>🗃️</div>
-                            <p style={{ color: '#475569', fontSize: '1rem', fontWeight: '800' }}>No {activeCategory.value} cases</p>
-                            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.25rem' }}>Everything looks clear here.</p>
+                        <div style={{ margin: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '220px', backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: '24px', border: '2px dashed rgba(255,255,255,0.05)' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem', filter: 'grayscale(1) opacity(0.3)' }}>🗃️</div>
+                            <p style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: '800' }}>No {activeCategory.value} cases</p>
+                            <p style={{ color: '#475569', fontSize: '0.75rem', marginTop: '0.25rem' }}>Everything looks clear here.</p>
                         </div>
                     ) : (
                         filteredCases.value.map((c, index) => {
@@ -244,40 +242,40 @@ export default {
 
                             return (
                                 <div key={c._id} class="case-card" onClick={() => handleCaseClick(c._id)} style={{ animation: `slideUp 0.4s ease-out backwards ${index * 0.05}s` }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                        <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
-                                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `${statusColor.bg}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${statusColor.bg}` }}>
-                                                <DocumentTextIcon style={{ width: '22px', height: '22px', color: statusColor.text }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${statusColor.bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid rgba(255,255,255,0.05)` }}>
+                                                <DocumentTextIcon style={{ width: '18px', height: '18px', color: statusColor.text }} />
                                             </div>
                                             <div>
-                                                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#1e293b', letterSpacing: '-0.02em' }}>{caseTypeName}</h3>
-                                                <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.8rem', color: statusColor.text, fontWeight: '700', marginTop: '2px' }}>
+                                                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800', color: 'white', letterSpacing: '-0.02em' }}>{caseTypeName}</h3>
+                                                <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', color: statusColor.text, fontWeight: '700', marginTop: '1px' }}>
                                                     <span class="status-dot" style={{ backgroundColor: statusColor.text }}></span>
                                                     {c.status || 'Reported'}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="case-id">#{c._id.slice(-6)}</div>
+                                        <div class="case-id">#{c._id.slice(-4)}</div>
                                     </div>
 
-                                    <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '0.85rem 1rem', marginBottom: '1rem', border: '1px solid #f1f5f9' }}>
-                                        <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '0.75rem', marginBottom: '0.75rem', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                             {c.message || 'No details shared.'}
                                         </p>
                                     </div>
 
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', gap: '0.8rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600' }}>
-                                                <MapPinIcon style={{ width: '14px', height: '14px' }} />
-                                                <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc}</span>
+                                        <div style={{ display: 'flex', gap: '0.6rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.7rem', fontWeight: '600' }}>
+                                                <MapPinIcon style={{ width: '12px', height: '12px' }} />
+                                                <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc}</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#94a3b8', fontSize: '0.75rem', fontWeight: '600' }}>
-                                                <ClockIcon style={{ width: '14px', height: '14px' }} />
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.7rem', fontWeight: '600' }}>
+                                                <ClockIcon style={{ width: '12px', height: '12px' }} />
                                                 <span>{formatDate(c.createdAt)}</span>
                                             </div>
                                         </div>
-                                        <div style={{ color: '#4f46e5', fontSize: '1.1rem' }}>›</div>
+                                        <div style={{ color: '#6366f1', fontSize: '1rem' }}>›</div>
                                     </div>
                                 </div>
                             );
@@ -285,7 +283,7 @@ export default {
                     )}
                     <div style={{ height: '2rem' }}></div>
                 </div>
-            </div>
+            </>
         );
     }
 };

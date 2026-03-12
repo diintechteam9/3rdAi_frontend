@@ -1,6 +1,6 @@
 import { ref, computed, watch, onMounted } from 'vue'; // Added watch
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeftIcon, MapPinIcon, PhotoIcon, VideoCameraIcon, ArrowRightIcon, ExclamationTriangleIcon, ShieldExclamationIcon, EyeSlashIcon, MegaphoneIcon, BanknotesIcon, FireIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
+import { ArrowLeftIcon, MapPinIcon, PhotoIcon, VideoCameraIcon, ArrowRightIcon, ExclamationTriangleIcon, ShieldExclamationIcon, EyeSlashIcon, MegaphoneIcon, BanknotesIcon, FireIcon, CheckCircleIcon, PlusIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline';
 import api from '../../services/api.js';
 import MyCases from './MyCases.jsx';
 
@@ -9,568 +9,392 @@ export default {
     setup() {
         const route = useRoute();
         const router = useRouter();
-        const caseType = ref(route.query.type || '');
-        const activeMainTab = ref('report');
 
-        // Dynamic Fields
-        const dynamicFormFields = ref([]);
-        const isFetchingForm = ref(false);
-
-        const casesList = [
-            { id: 'robbery', name: 'Robbery', icon: BanknotesIcon, color: '#dc2626', description: 'Report an armed robbery or holdup' },
-            { id: 'unidentified_emergency', name: 'Emergency / Unknown Incident', icon: FireIcon, color: '#b91c1c', description: 'Report dead bodies, suspicious objects, etc.' },
-            { id: 'snatching', name: 'Snatching', icon: ExclamationTriangleIcon, color: '#f97316', description: 'Report a chain, bag, or mobile snatching incident' },
-            { id: 'theft', name: 'Theft', icon: EyeSlashIcon, color: '#ef4444', description: 'Report a home, shop, or vehicle theft' },
-            { id: 'harassment', name: 'Harassment / Suspicious Activity', icon: ShieldExclamationIcon, color: '#8b5cf6', description: 'Report stalking or suspicious persons' },
-            { id: 'accident', name: 'Accident', icon: MegaphoneIcon, color: '#eab308', description: 'Report a road accident or hit & run' },
-            { id: 'camera_issue', name: 'Camera / Safety Issue', icon: VideoCameraIcon, color: '#3b82f6', description: 'Report blind spots or non-working cameras' }
-        ];
-
+        // Multi-Step State
+        const currentStep = ref(0); // 0: Select, 1: Description, 2: Location, 3: Details, 4: Review
+        const caseTypes = ref([]);
+        const selectedCT = ref(null);
         const loading = ref(false);
+        const isFetching = ref(false);
 
-        // Common fields
         const formData = ref({
             location: '',
             latitude: null,
             longitude: null,
-            dateTime: '',
+            dateTime: new Date().toISOString().slice(0, 16),
             description: '',
-            isAnonymous: false,
-            media: [], // would store files
-
-            // Dynamic data object populated via API
+            media: [],
             dynamicData: {}
         });
 
-        const caseNames = {
-            'robbery': 'Robbery',
-            'unidentified_emergency': 'Emergency / Unknown Incident',
-            'snatching': 'Snatching',
-            'theft': 'Theft',
-            'harassment': 'Harassment / Suspicious Activity',
-            'accident': 'Accident',
-            'camera_issue': 'Camera / Safety Issue'
+        const fetchCaseTypes = async () => {
+            isFetching.value = true;
+            try {
+                const res = await api.getMobileCaseTypes();
+                if (res?.data) caseTypes.value = res.data;
+            } catch (e) {
+                console.error(e);
+            } finally {
+                isFetching.value = false;
+            }
         };
 
-        const currentCaseName = computed(() => caseNames[caseType.value] || 'Report a Case');
+        const handleCategoryClick = (ct) => {
+            selectedCT.value = ct;
+            // Initialize dynamic data
+            const dyn = {};
+            ct.fields?.forEach(f => dyn[f.name] = '');
+            formData.value.dynamicData = dyn;
+            currentStep.value = 1;
+        };
+
+        const handleSubOptionClick = (ct, fieldName, value) => {
+            selectedCT.value = ct;
+            const dyn = {};
+            ct.fields?.forEach(f => dyn[f.name] = '');
+            dyn[fieldName] = value;
+            formData.value.dynamicData = dyn;
+            currentStep.value = 1; // Jump to description
+        };
 
         const getLocation = () => {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        formData.value.latitude = position.coords.latitude;
-                        formData.value.longitude = position.coords.longitude;
-                        formData.value.location = `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)} (Auto GPS)`;
-                    },
-                    (error) => {
-                        alert('Unable to retrieve your location. Please enter manually.');
-                    }
-                );
-            } else {
-                alert('Geolocation is not supported by your browser.');
+                navigator.geolocation.getCurrentPosition(pos => {
+                    formData.value.latitude = pos.coords.latitude;
+                    formData.value.longitude = pos.coords.longitude;
+                    formData.value.location = `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                });
             }
         };
 
-        const goBack = () => {
-            if (caseType.value && !route.query.type) {
-                caseType.value = '';
-            } else {
-                router.back();
-            }
-        };
-
-        const handleCaseClick = (cId) => {
-            caseType.value = cId;
-        };
-
-        const handleFileUpload = (e) => {
-            // Dummy handling for file input
-            const files = Array.from(e.target.files);
-            formData.value.media = [...formData.value.media, ...files];
-        };
-
-        // Fetch dynamic form fields whenever the caseType changes
-        watch(caseType, async (newType) => {
-            if (!newType) {
-                dynamicFormFields.value = [];
-                formData.value.dynamicData = {};
-                return;
-            }
-
-            isFetchingForm.value = true;
-            try {
-                // Fetch dynamic fields from the backend
-                const response = await api.getMobileCaseForm(newType);
-                if (response?.data?.specificFields) {
-                    dynamicFormFields.value = response.data.specificFields;
-
-                    // Initialize empty state for all new dynamic fields
-                    const newDynamicData = {};
-                    response.data.specificFields.forEach(f => {
-                        newDynamicData[f.name] = ''; // Blank out 
-                    });
-                    formData.value.dynamicData = newDynamicData;
-                }
-            } catch (err) {
-                console.error("Failed to load dynamic fields:", err);
-                alert("Could not load form fields. Please check your connection.");
-            } finally {
-                isFetchingForm.value = false;
-            }
-        });
-
-        const submitCase = async () => {
+        const submitFinal = async () => {
             loading.value = true;
             try {
                 const payload = {
-                    title: formData.value.incidentTitle || `New ${currentCaseName.value} Case`,
-                    type: 'USER',
-                    priority: 'high',
-                    // ── GPS coordinates at top-level for server-side geo-routing ──
-                    // Backend reads req.body.latitude / req.body.longitude to find
-                    // matching area polygon via $geoIntersects and auto-assign partner
+                    title: `New ${selectedCT.value.name} Case`,
                     latitude: formData.value.latitude,
                     longitude: formData.value.longitude,
-                    // ── Full form data stored as metadata ──
                     formData: {
-                        type: caseType.value,
-                        ...formData.value.dynamicData, // Insert dynamic user inputs
+                        type: selectedCT.value.id,
+                        ...formData.value.dynamicData,
                         description: formData.value.description,
-                        isAnonymous: formData.value.isAnonymous,
                         dateTime: formData.value.dateTime
                     }
                 };
-
-                console.log('Submitting case payload:', {
-                    ...payload,
-                    geoRouting: payload.latitude
-                        ? `GPS: [${payload.latitude}, ${payload.longitude}]`
-                        : 'No GPS provided'
-                });
-
                 await api.reportCase(payload);
-
-                alert(`✅ ${currentCaseName.value} case reported successfully!\nA response team has been notified.`);
                 router.replace('/mobile/user/dashboard');
-                loading.value = false;
             } catch (e) {
-                console.error(e);
-                alert('Error submitting report. Please try again.');
+                alert('Submission failed');
+            } finally {
                 loading.value = false;
             }
         };
 
+        onMounted(fetchCaseTypes);
 
-        return () => (
-            <div class="report-case-container" style={{ minHeight: '100vh', background: '#f8fafc', paddingBottom: '2rem' }}>
-                <style>{`
-                    .cases-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                        gap: 1.25rem;
-                        padding-bottom: 2rem;
-                    }
+        // Helper for dynamic icon resolution
+        const IconMap = {
+            ShieldCheckIcon, ShieldExclamationIcon, ExclamationTriangleIcon,
+            MegaphoneIcon, BanknotesIcon, FireIcon, CheckCircleIcon,
+            MapPinIcon, PhotoIcon, VideoCameraIcon, EyeSlashIcon,
+            PlusIcon, ArrowRightIcon, ArrowLeftIcon
+        };
 
-                    .case-card-selection {
-                        background: white;
-                        border-radius: 20px;
-                        padding: 1.5rem;
-                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-                        cursor: pointer;
-                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                        border: 1px solid #f1f5f9;
-                        position: relative;
-                        overflow: hidden;
-                        display: flex;
-                        flex-direction: column;
-                    }
+        const resolveIcon = (iconSource, size = '24px', fallbackLabel = '') => {
+            if (!iconSource) {
+                if (fallbackLabel) {
+                    return <span style={{ fontSize: '12px', fontWeight: '800' }}>{fallbackLabel.slice(0, 1).toUpperCase()}</span>;
+                }
+                return <ExclamationTriangleIcon style={{ width: size, height: size }} />;
+            }
 
-                    .case-card-selection:hover {
-                        transform: translateY(-8px);
-                        box-shadow: 0 20px 30px rgba(0, 0, 0, 0.1);
-                        border-color: #4f46e530;
-                    }
+            // 1. URL Image
+            if (iconSource.startsWith('http') || iconSource.startsWith('data:') || iconSource.startsWith('/')) {
+                return <img src={iconSource} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+            }
 
-                    .selection-icon-container {
-                        width: 56px;
-                        height: 56px;
-                        border-radius: 16px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        margin-bottom: 1.25rem;
-                        transition: all 0.3s ease;
-                        position: relative;
-                        z-index: 2;
-                    }
+            // 2. HeroIcon Component Name
+            if (IconMap[iconSource]) {
+                const IconComp = IconMap[iconSource];
+                return <IconComp style={{ width: size, height: size }} />;
+            }
 
-                    .case-card-selection:hover .selection-icon-container {
-                        transform: scale(1.1) rotate(-5deg);
-                    }
+            // 3. Emoji / Single Char
+            if (iconSource.length <= 4) {
+                return <span style={{ fontSize: '20px' }}>{iconSource}</span>;
+            }
 
-                    .selection-title {
-                        font-size: 1.15rem;
-                        font-weight: 800;
-                        color: #1e293b;
-                        margin-bottom: 0.5rem;
-                        letter-spacing: -0.02em;
-                    }
+            // 4. Default Fallback (Initials if label provided, else warning icon)
+            if (fallbackLabel) {
+                return <span style={{ fontSize: '12px', fontWeight: '800' }}>{fallbackLabel.slice(0, 1).toUpperCase()}</span>;
+            }
+            return <ExclamationTriangleIcon style={{ width: size, height: size }} />;
+        };
 
-                    .selection-description {
-                        font-size: 0.9rem;
-                        color: #64748b;
-                        line-height: 1.5;
-                        margin-bottom: 1.5rem;
-                        flex: 1;
-                        font-weight: 500;
-                    }
+        // Sub-renderers
+        const renderStep0 = () => (
+            <div style={{ padding: '20px' }}>
+                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Report Incident</h2>
+                <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Select a category and sub-type to begin.</p>
 
-                    .selection-action {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin-top: auto;
-                        padding-top: 1rem;
-                        border-top: 1px solid #f8fafc;
-                    }
+                <div style={{ display: 'grid', gap: '12px' }}>
+                    {caseTypes.value.map(ct => {
+                        // Find the first select field to use as visual selector
+                        const selectField = ct.fields?.find(f => f.type === 'select');
 
-                    .selection-action-text {
-                        font-size: 0.85rem;
-                        color: #6366f1;
-                        font-weight: 700;
-                    }
-
-                    .selection-arrow {
-                        width: 36px;
-                        height: 36px;
-                        border-radius: 12px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: all 0.3s ease;
-                        background: #f8fafc;
-                        border: 1px solid #f1f5f9;
-                    }
-
-                    .case-card-selection:hover .selection-arrow {
-                        background: #4f46e510;
-                        transform: translateX(4px);
-                    }
-
-                    .form-container {
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding-bottom: 2rem;
-                    }
-
-                    .form-section {
-                        background: white;
-                        border-radius: 20px;
-                        padding: 1.5rem;
-                        margin-bottom: 1.25rem;
-                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-                        border: 1px solid #f1f5f9;
-                        transition: all 0.3s ease;
-                    }
-
-                    .form-section:focus-within {
-                        border-color: #4f46e530;
-                        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-                    }
-
-                    .input-label {
-                        display: block;
-                        font-size: 0.9rem;
-                        font-weight: 700;
-                        color: #1e293b;
-                        margin-bottom: 0.75rem;
-                        letter-spacing: -0.01em;
-                    }
-
-                    .input-field {
-                        width: 100%;
-                        padding: 0.85rem 1rem;
-                        border-radius: 12px;
-                        border: 1.5px solid #e2e8f0;
-                        font-size: 1rem;
-                        color: #1e293b;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        background: #f8fafc;
-                        box-sizing: border-box;
-                    }
-
-                    .input-field:focus {
-                        outline: none;
-                        border-color: #4f46e5;
-                        background: white;
-                        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-                    }
-
-                    .submit-btn {
-                        width: 100%;
-                        padding: 1.1rem;
-                        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-                        color: white;
-                        border: none;
-                        borderRadius: 16px;
-                        font-size: 1.1rem;
-                        font-weight: 700;
-                        cursor: pointer;
-                        box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
-                        transition: all 0.3s ease;
-                        letter-spacing: 0.5px;
-                        margin-top: 1rem;
-                    }
-
-                    .submit-btn:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 15px 30px rgba(79, 70, 229, 0.4);
-                        filter: brightness(1.1);
-                    }
-
-                    .submit-btn:active {
-                        transform: translateY(0);
-                    }
-
-                    .submit-btn:disabled {
-                        background: #cbd5e1;
-                        box-shadow: none;
-                        cursor: not-allowed;
-                    }
-
-                    @media (max-width: 768px) {
-                        .cases-grid { grid-template-columns: 1fr; gap: 1rem; }
-                    }
-                `}</style>
-                {/* Header - Only show when a specific case is selected */}
-                {caseType.value && (
-                    <div style={{
-                        background: 'white',
-                        padding: '1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 10
-                    }}>
-                        <button onClick={goBack} style={{ border: 'none', background: 'transparent', padding: '0.5rem', cursor: 'pointer' }}>
-                            <ArrowLeftIcon style={{ width: '24px', height: '24px', color: '#1e293b' }} />
-                        </button>
-                        <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600', color: '#1e293b' }}>
-                            {currentCaseName.value}
-                        </h1>
-                    </div>
-                )}
-
-                {!caseType.value ? (
-                    <>
-                        <div style={{ padding: '1.5rem 1rem 0', display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ background: '#e2e8f0', padding: '0.375rem', borderRadius: '12px', display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '500px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => activeMainTab.value = 'report'}
-                                    style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: activeMainTab.value === 'report' ? 'white' : 'transparent', color: activeMainTab.value === 'report' ? '#4f46e5' : '#64748b', fontWeight: '600', fontSize: '0.95rem', transition: 'all 0.3s ease', cursor: 'pointer', boxShadow: activeMainTab.value === 'report' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none' }}
-                                >Report New Case</button>
-                                <button
-                                    type="button"
-                                    onClick={() => activeMainTab.value = 'track'}
-                                    style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: activeMainTab.value === 'track' ? 'white' : 'transparent', color: activeMainTab.value === 'track' ? '#4f46e5' : '#64748b', fontWeight: '600', fontSize: '0.95rem', transition: 'all 0.3s ease', cursor: 'pointer', boxShadow: activeMainTab.value === 'track' ? '0 2px 8px rgba(0,0,0,0.1)' : 'none' }}
-                                >Track Status</button>
-                            </div>
-                        </div>
-
-                        {activeMainTab.value === 'report' ? (
-                            <div style={{ padding: '1rem' }}>
-                                <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Select the type of incident you want to report.</p>
-                                <div class="cases-grid">
-                                    {casesList.map((c, idx) => (
-                                        <div
-                                            key={c.id}
-                                            class="case-card-selection"
-                                            onClick={() => handleCaseClick(c.id)}
-                                            style={{
-                                                background: `linear-gradient(135deg, ${c.color}05 0%, #ffffff 100%)`,
-                                                animation: `slideUp 0.5s ease-out backwards ${idx * 0.1}s`
-                                            }}
-                                        >
-                                            <div class="selection-icon-container" style={{
-                                                backgroundColor: `${c.color}15`,
-                                                border: `1.5px solid ${c.color}25`
-                                            }}>
-                                                <c.icon style={{ width: '1.75rem', height: '1.75rem', color: c.color }} />
-                                            </div>
-
-                                            <div class="selection-title">{c.name}</div>
-                                            <div class="selection-description">{c.description}</div>
-
-                                            <div class="selection-action">
-                                                <div class="selection-action-text">Report Incident</div>
-                                                <div
-                                                    class="selection-arrow"
-                                                    style={{ color: c.color }}
-                                                >
-                                                    <ArrowRightIcon style={{ width: '1.1rem', height: '1.1rem' }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <MyCases />
-                        )}
-                    </>
-                ) : isFetchingForm.value ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh' }}>
-                        <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                        <p style={{ marginTop: '1rem', color: '#64748b', fontWeight: '600' }}>Loading Incident Form...</p>
-                    </div>
-                ) : (
-                    <form class="form-container" onSubmit={(e) => { e.preventDefault(); submitCase(); }}>
-                        {/* Common Fields */}
-                        <div class="form-section">
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 1.5rem 0', color: '#1e293b' }}>Incident Details</h2>
-
-                            {/* Location */}
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <label class="input-label">Address / Landmark <span style={{ color: '#ef4444' }}>*</span></label>
-                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-                                    <input required type="text" value={formData.value.location} onInput={(e) => formData.value.location = e.target.value} placeholder="e.g. Near Metro Pillar 12" class="input-field" />
-                                    <button type="button" onClick={getLocation} style={{ padding: '0 1rem', background: '#4f46e510', border: '1.5px solid #4f46e520', borderRadius: '12px', color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}>
-                                        <MapPinIcon style={{ width: '22px', height: '22px' }} />
+                        return (
+                            <div key={ct.id} className="glass-card" style={{ borderRadius: '24px', padding: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: (selectField ? '16px' : '0') }}>
+                                    <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: ct.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ct.color, border: `1px solid ${ct.color}30`, flexShrink: 0 }}>
+                                        {resolveIcon(ct.icon, '22px')}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <h3 style={{ color: 'white', fontWeight: '800', margin: '0 0 2px', fontSize: '15px' }}>{ct.name}</h3>
+                                        <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ct.description}</p>
+                                    </div>
+                                    <button onClick={() => handleCategoryClick(ct)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.05)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <ArrowRightIcon style={{ width: '16px', height: '16px' }} />
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div>
-                                        <label class="input-label" style={{ fontSize: '0.75rem', color: '#64748b' }}>Latitude</label>
-                                        <input type="number" step="any" value={formData.value.latitude} onInput={(e) => formData.value.latitude = parseFloat(e.target.value)} placeholder="0.0000" class="input-field" style={{ fontSize: '0.9rem' }} />
-                                    </div>
-                                    <div>
-                                        <label class="input-label" style={{ fontSize: '0.75rem', color: '#64748b' }}>Longitude</label>
-                                        <input type="number" step="any" value={formData.value.longitude} onInput={(e) => formData.value.longitude = parseFloat(e.target.value)} placeholder="0.0000" class="input-field" style={{ fontSize: '0.9rem' }} />
-                                    </div>
-                                </div>
-                                <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                                    * Lat/Lng will be used to route this case to the nearest police station.
-                                </p>
-                            </div>
-
-                            {/* Date Time */}
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <label class="input-label">Date & Time <span style={{ color: '#ef4444' }}>*</span></label>
-                                <input required type="datetime-local" value={formData.value.dateTime} onInput={(e) => formData.value.dateTime = e.target.value} class="input-field" />
-                            </div>
-
-                            {/* Description */}
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <label class="input-label">Description <span style={{ color: '#ef4444' }}>*</span></label>
-                                <textarea required rows="4" value={formData.value.description} onInput={(e) => formData.value.description = e.target.value} placeholder="Tell us what happened..." class="input-field" style={{ resize: 'none' }}></textarea>
-                            </div>
-
-                            {/* Media Upload */}
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <label class="input-label">Photo / Video Proof</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1.25rem', background: '#f8fafc', borderRadius: '12px', cursor: 'pointer', border: '1.5px dashed #e2e8f0', flex: 1, transition: 'all 0.2s' }}>
-                                        <PhotoIcon style={{ width: '22px', height: '22px', color: '#6366f1' }} />
-                                        <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: '600' }}>Upload Media</span>
-                                        <input type="file" multiple accept="image/*,video/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-                                    </label>
-                                </div>
-                                {formData.value.media.length > 0 && (
-                                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', background: '#10b98110', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700' }}>
-                                        <CheckCircleIcon style={{ width: '16px', height: '16px' }} />
-                                        {formData.value.media.length} file(s) attached
+                                {selectField && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
+                                        {selectField.options?.map(opt => (
+                                            <div key={opt.value} onClick={() => handleSubOptionClick(ct, selectField.name, opt.value)} className="sub-option-grid-item" style={{ textAlign: 'center', cursor: 'pointer' }}>
+                                                <div style={{ width: '42px', height: '42px', margin: '0 auto 4px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', color: ct.color }}>
+                                                    {resolveIcon(opt.icon, '16px', opt.label)}
+                                                </div>
+                                                <div style={{ fontSize: '7px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.label}</div>
+                                            </div>
+                                        ))}
+                                        <div onClick={() => handleCategoryClick(ct)} className="sub-option-grid-item" style={{ textAlign: 'center', cursor: 'pointer' }}>
+                                            <div style={{ width: '42px', height: '42px', margin: '0 auto 4px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                                                <PlusIcon style={{ width: '14px' }} />
+                                            </div>
+                                            <div style={{ fontSize: '7px', color: '#475569', fontWeight: '800', textTransform: 'uppercase' }}>OTHERS</div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
+                        );
+                    })}
+                </div>
 
-                            {/* Anonymous Toggle */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1.5rem', padding: '1.25rem', background: '#fefce8', borderRadius: '16px', border: '1px solid #fef08a' }}>
-                                <div style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                                    <input type="checkbox" id="anon" checked={formData.value.isAnonymous} onChange={(e) => formData.value.isAnonymous = e.target.checked} style={{ opacity: 0, width: 0, height: 0 }} />
-                                    <label for="anon" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: formData.value.isAnonymous ? '#4f46e5' : '#d1d5db', transition: '.4s', borderRadius: '24px' }}>
-                                        <span style={{ position: 'absolute', content: '""', height: '18px', width: '18px', left: formData.value.isAnonymous ? '22px' : '3px', bottom: '3px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
-                                    </label>
-                                </div>
-                                <label for="anon" style={{ fontSize: '0.95rem', color: '#854d0e', cursor: 'pointer', fontWeight: '700', userSelect: 'none' }}>Report Anonymously</label>
-                            </div>
+                {/* Track Status Section */}
+                <div style={{ marginTop: '32px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', padding: '0 4px' }}>
+                        <div style={{ width: '4px', height: '18px', background: '#6366f1', borderRadius: '2px' }}></div>
+                        <h2 style={{ color: 'white', fontSize: '18px', fontWeight: '800', margin: 0 }}>Track Status</h2>
+                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginLeft: 'auto', letterSpacing: '0.05em' }}>Real-time Updates</span>
+                    </div>
+                    <div style={{ margin: '0 -20px' }}>
+                        <MyCases />
+                    </div>
+                </div>
+            </div>
+        );
+
+        const renderStep1 = () => (
+            <div style={{ padding: '20px' }}>
+                <div className="glass-card" style={{ borderRadius: '32px', padding: '28px', minHeight: '420px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#f9731620', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f97316', border: '1px solid #f9731630' }}>
+                            <MegaphoneIcon style={{ width: '22px' }} />
                         </div>
-
-                        {/* Type Specific Fields */}
-                        {/* Type Specific Dynamic Fields from Backend API */}
-                        {dynamicFormFields.value.length > 0 && (
-                            <div class="form-section" style={{ animation: 'slideUp 0.3s ease-out' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 1.5rem 0', color: '#1e293b' }}>Additional Info</h2>
-
-                                {dynamicFormFields.value.map((field) => (
-                                    <div key={field.name} style={{ marginBottom: '1.25rem' }}>
-                                        <label class="input-label">
-                                            {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
-                                        </label>
-
-                                        {field.type === 'select' ? (
-                                            <select
-                                                required={field.required}
-                                                value={formData.value.dynamicData[field.name] || ''}
-                                                onChange={(e) => formData.value.dynamicData[field.name] = e.target.value}
-                                                class="input-field"
-                                            >
-                                                <option value="">Select {field.label.toLowerCase()}</option>
-                                                {field.options?.map(opt => (
-                                                    <option key={opt} value={opt}>{opt}</option>
-                                                ))}
-                                            </select>
-                                        ) : field.type === 'textarea' ? (
-                                            <textarea
-                                                required={field.required}
-                                                rows="3"
-                                                value={formData.value.dynamicData[field.name] || ''}
-                                                onInput={(e) => formData.value.dynamicData[field.name] = e.target.value}
-                                                placeholder={`Enter ${field.label.toLowerCase()}`}
-                                                class="input-field"
-                                                style={{ resize: 'none' }}
-                                            ></textarea>
-                                        ) : field.type === 'number' ? (
-                                            <input
-                                                type="number"
-                                                required={field.required}
-                                                value={formData.value.dynamicData[field.name] || ''}
-                                                onInput={(e) => formData.value.dynamicData[field.name] = e.target.value}
-                                                class="input-field"
-                                            />
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                required={field.required}
-                                                value={formData.value.dynamicData[field.name] || ''}
-                                                onInput={(e) => formData.value.dynamicData[field.name] = e.target.value}
-                                                placeholder={`Enter ${field.label.toLowerCase()}`}
-                                                class="input-field"
-                                            />
-                                        )}
-                                    </div>
-                                ))}
+                        <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'white', margin: 0 }}>Incident Description</h2>
+                    </div>
+                    <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '16px', fontWeight: '500' }}>Can you describe what happened?</p>
+                    <textarea
+                        onInput={e => formData.value.description = e.target.value}
+                        value={formData.value.description}
+                        placeholder="e.g. Armed robbery by 2 people on a blue bike, heading North..."
+                        style={{ flex: 1, width: '100%', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '20px', color: 'white', resize: 'none', fontSize: '15px', lineHeight: '1.6', outline: 'none' }}
+                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '24px' }}>
+                        {[{ i: PhotoIcon, l: 'Photo' }, { i: VideoCameraIcon, l: 'Video' }, { i: FireIcon, l: 'Audio' }].map(m => (
+                            <div key={m.l} style={{ background: 'rgba(255,255,255,0.03)', padding: '16px 8px', borderRadius: '20px', textAlign: 'center', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <m.i style={{ width: '24px', margin: '0 auto 6px' }} />
+                                <div style={{ fontSize: '11px', fontWeight: '700' }}>{m.l}</div>
                             </div>
-                        )}
+                        ))}
+                    </div>
+                </div>
+                <button onClick={() => currentStep.value = 2} className="premium-continue-btn">
+                    Continue <ArrowRightIcon style={{ width: '18px' }} />
+                </button>
+            </div>
+        );
 
-                        <button type="submit" disabled={loading.value} class="submit-btn">
-                            {loading.value ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                                    <div style={{ width: '20px', height: '20px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                                    Submitting Report...
-                                </div>
-                            ) : 'Submit Incident Report'}
+        const renderStep2 = () => (
+            <div style={{ padding: '20px' }}>
+                <div className="glass-card" style={{ borderRadius: '32px', padding: '28px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#0ea5e920', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0ea5e9', border: '1px solid #0ea5e930' }}>
+                            <MapPinIcon style={{ width: '22px' }} />
+                        </div>
+                        <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'white', margin: 0 }}>Incident Location</h2>
+                    </div>
+
+                    <div style={{ marginBottom: '24px' }}>
+                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block', letterSpacing: '0.05em' }}>Address / Landmark</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                onInput={e => formData.value.location = e.target.value}
+                                value={formData.value.location}
+                                placeholder="Where did it occur?"
+                                style={{ width: '100%', padding: '16px 48px 16px 20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', color: 'white', fontSize: '15px', outline: 'none' }}
+                            />
+                            <button onClick={getLocation} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9', width: '32px', height: '32px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <MapPinIcon style={{ width: '18px' }} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block', letterSpacing: '0.05em' }}>Incident Time</label>
+                        <input
+                            type="datetime-local"
+                            onInput={e => formData.value.dateTime = e.target.value}
+                            value={formData.value.dateTime}
+                            style={{ width: '100%', padding: '16px 20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', color: 'white', fontSize: '15px', outline: 'none' }}
+                        />
+                    </div>
+                </div>
+                <button onClick={() => currentStep.value = 3} className="premium-continue-btn">
+                    Continue <ArrowRightIcon style={{ width: '18px' }} />
+                </button>
+            </div>
+        );
+
+        const renderStep3 = () => {
+            const fields = selectedCT.value?.fields || [];
+            return (
+                <div style={{ padding: '20px' }}>
+                    <div className="glass-card" style={{ borderRadius: '32px', padding: '28px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#e11d4820', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e11d48', border: '1px solid #e11d4830' }}>
+                                <ShieldCheckIcon style={{ width: '22px' }} />
+                            </div>
+                            <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'white', margin: 0 }}>Additional Details</h2>
+                        </div>
+                        {fields.map(f => (
+                            <div key={f.name} style={{ marginBottom: '20px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block', letterSpacing: '0.05em' }}>{f.label}</label>
+                                {f.type === 'select' ? (
+                                    <select
+                                        onChange={e => formData.value.dynamicData[f.name] = e.target.value}
+                                        value={formData.value.dynamicData[f.name]}
+                                        style={{ width: '100%', padding: '16px 20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', color: 'white', fontSize: '15px', outline: 'none', appearance: 'none' }}
+                                    >
+                                        <option value="" style={{ background: '#1e293b' }}>Select {f.label}</option>
+                                        {f.options?.map(o => <option key={o.value} value={o.value} style={{ background: '#1e293b' }}>{o.label}</option>)}
+                                    </select>
+                                ) : (
+                                    <input
+                                        type={f.type === 'number' ? 'number' : 'text'}
+                                        onInput={e => formData.value.dynamicData[f.name] = e.target.value}
+                                        value={formData.value.dynamicData[f.name]}
+                                        style={{ width: '100%', padding: '16px 20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', color: 'white', fontSize: '15px', outline: 'none' }}
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={() => currentStep.value = 4} className="premium-continue-btn">
+                        Review Report <ArrowRightIcon style={{ width: '18px' }} />
+                    </button>
+                </div>
+            );
+        };
+
+        const renderStep4 = () => (
+            <div style={{ padding: '20px' }}>
+                <div className="glass-card" style={{ borderRadius: '32px', padding: '28px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'white', marginBottom: '28px' }}>Final Review</h2>
+
+                    {[
+                        { l: 'Incident Category', v: selectedCT.value.name, c: selectedCT.value.color },
+                        { l: 'Location Reported', v: formData.value.location },
+                        { l: 'Description Summary', v: formData.value.description || 'No description provided.' }
+                    ].map(item => (
+                        <div key={item.l} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '24px', padding: '20px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>{item.l}</div>
+                            <div style={{ color: item.c || 'white', fontWeight: '700', fontSize: '15px', lineHeight: '1.5' }}>{item.v}</div>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={submitFinal} disabled={loading.value} className="premium-continue-btn" style={{ background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)', boxShadow: '0 10px 25px rgba(225, 29, 72, 0.3)' }}>
+                    {loading.value ? 'Finalizing...' : 'Submit Official Report'}
+                    {!loading.value && <CheckCircleIcon style={{ width: '20px' }} />}
+                </button>
+            </div>
+        );
+
+        return () => (
+            <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top right, #1e1b4b, #0f172a)', paddingTop: '20px', paddingBottom: '40px' }}>
+                <style>{`
+                    .premium-continue-btn {
+                        width: 100%;
+                        padding: 18px;
+                        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 18px;
+                        font-weight: 800;
+                        font-size: 16px;
+                        margin-top: 24px;
+                        cursor: pointer;
+                        box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3);
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    }
+                    .premium-continue-btn:active { transform: scale(0.97); filter: brightness(1.1); }
+                    .premium-continue-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+                    .glass-card {
+                        background: rgba(30, 41, 59, 0.4);
+                        backdrop-filter: blur(20px);
+                        -webkit-backdrop-filter: blur(20px);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+                        transition: transform 0.2s ease, border-color 0.2s ease;
+                    }
+                    .glass-card:active { transform: scale(0.99); border-color: rgba(255, 255, 255, 0.2); }
+
+                    .sub-option-grid-item {
+                        transition: all 0.2s ease;
+                    }
+                    .sub-option-grid-item:active { transform: scale(0.92); }
+                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    .fade-in-section { animation: fadeIn 0.4s ease forwards; }
+                `}</style>
+
+                {/* Navbar */}
+                <div style={{ padding: '0 24px', display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                    {currentStep.value > 0 && (
+                        <button onClick={() => currentStep.value--} style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <ArrowLeftIcon style={{ width: '20px' }} />
                         </button>
+                    )}
+                    <h1 style={{ color: 'white', fontSize: '20px', fontWeight: '800', margin: 0, letterSpacing: '-0.02em' }}>
+                        {currentStep.value === 0 ? 'Reports' : `Report ${selectedCT.value?.name}`}
+                    </h1>
+                </div>
 
-                        <style>{`
-                            @keyframes spin { to { transform: rotate(360deg); } }
-                        `}</style>
-                    </form>
-                )}
+                <div className="fade-in-section">
+                    {currentStep.value === 0 && renderStep0()}
+                    {currentStep.value === 1 && renderStep1()}
+                    {currentStep.value === 2 && renderStep2()}
+                    {currentStep.value === 3 && renderStep3()}
+                    {currentStep.value === 4 && renderStep4()}
+                </div>
             </div>
         );
     }

@@ -99,12 +99,26 @@ export default {
       }
     };
 
+    const pageTitles = {
+      home: 'Dashboard',
+      'report-case': 'Report a Case',
+      'my-cases': 'My Cases',
+      information: 'Information Center',
+      cctv: 'CCTV Surveillance',
+      voice: 'Voice Assistant',
+      chat: 'AI Chat',
+      profile: 'My Profile',
+      'user-chat': 'Expert Consultation'
+    };
+
     const handleLogout = async () => {
       await logout('user');
       router.push('/user/login');
     };
 
-
+    const headerTitle = computed(() => {
+      return pageTitles[activePage.value] || 'User Portal';
+    });
 
     return () => (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -335,7 +349,7 @@ export default {
                 fontSize: isMobile.value ? '1.25rem' : '1.5rem',
                 color: '#1e293b',
                 fontWeight: 600
-              }}>User Portal</h1>
+              }}>{headerTitle.value}</h1>
             </div>
             <div style={{ textAlign: 'right' }}>
               <p style={{

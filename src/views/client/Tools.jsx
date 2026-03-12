@@ -7,7 +7,8 @@ import {
   SpeakerWaveIcon,
   ArrowRightIcon,
   MicrophoneIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  ShieldCheckIcon
 } from '@heroicons/vue/24/outline';
 
 export default {
@@ -69,6 +70,15 @@ export default {
         route: '/client/tools/information',
         color: '#0ea5e9',
         category: 'Content'
+      },
+      {
+        id: 7,
+        name: 'Report a Case Setup',
+        icon: ShieldCheckIcon,
+        description: 'Configure dynamic case types and custom fields for user reporting',
+        route: '/client/tools/case-setup',
+        color: '#f43f5e',
+        category: 'Setup'
       }
     ];
 

@@ -62,6 +62,23 @@ export default {
             return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
         };
 
+        const getEmbedUrl = (url) => {
+            if (!url) return null;
+            // YouTube (Now handles normal, shorts, and shared links)
+            const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+            const ytMatch = url.match(ytRegex);
+            if (ytMatch && ytMatch[1]) {
+                return `https://www.youtube.com/embed/${ytMatch[1]}`;
+            }
+            // Vimeo
+            const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i;
+            const vimeoMatch = url.match(vimeoRegex);
+            if (vimeoMatch && vimeoMatch[1]) {
+                return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+            }
+            return null;
+        };
+
         const publicSafetyVisibleCount = ref(3);
         const cyberSafetyVisibleCount = ref(3);
 
@@ -194,6 +211,17 @@ export default {
 
         // Reusable renderer for media inside cards
         const renderMediaPreview = (item, heightOpts = { img: '180px', vid: '220px', thumb: '160px' }) => {
+            const embedUrl = getEmbedUrl(item.mediaUrl);
+            if (embedUrl) {
+                return (
+                    <iframe
+                        src={embedUrl}
+                        style={{ width: '100%', height: heightOpts.vid, border: 'none', background: '#000' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                );
+            }
             if (item.mediaUrl && isVideo(item.mediaUrl)) {
                 return (
                     <video
@@ -300,19 +328,27 @@ export default {
                                     overflow: 'hidden'
                                 }}
                             >
-                                <video
-                                    src={item.mediaUrl}
-                                    controls
-                                    loop
-                                    // Mute all by default, observer will unmute visible one
-                                    muted={true}
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                        backgroundColor: '#000'
-                                    }}
-                                />
+                                {getEmbedUrl(item.mediaUrl) ? (
+                                    <iframe
+                                        src={getEmbedUrl(item.mediaUrl)}
+                                        style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#000' }}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    />
+                                ) : (
+                                    <video
+                                        src={item.mediaUrl}
+                                        controls
+                                        loop
+                                        muted={true}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'contain',
+                                            backgroundColor: '#000'
+                                        }}
+                                    />
+                                )}
 
                                 {/* Floating Actions (Right Side) */}
                                 <div style={{
@@ -415,14 +451,7 @@ export default {
                             Updates, Safety, and Alerts
                         </p>
                     </div>
-                    {!loading.value && totalCount.value > 0 && (
-                        <div style={{
-                            background: '#eef2ff', color: '#4f46e5',
-                            padding: '4px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600
-                        }}>
-                            {totalCount.value} Updates
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Loading / Error States */}
