@@ -79,6 +79,15 @@ export default {
         route: '/client/tools/case-setup',
         color: '#f43f5e',
         category: 'Setup'
+      },
+      {
+        id: 8,
+        name: 'AI Agents',
+        icon: ChatBubbleLeftRightIcon,
+        description: 'Create and manage AI chat & voice agents for your organisation',
+        route: '/client/tools/ai-agents',
+        color: '#22c55e',
+        category: 'AI Services'
       }
     ];
 

@@ -21,7 +21,15 @@ export default {
     const fetchUsers = async () => {
       try {
         const response = await api.getClientUsers();
-        users.value = response.data.users;
+        const allUsers = response.data.users || [];
+        // Show only fully completed accounts
+        users.value = allUsers.filter(u =>
+          (u.registrationStep === 3 || u.registrationComplete === true) &&
+          (u.emailVerified === true) &&
+          (u.mobileVerified === true) &&
+          (u.isActive !== false) &&
+          (u.loginApproved !== false)
+        );
       } catch (error) {
         console.error('Failed to fetch users:', error);
       }

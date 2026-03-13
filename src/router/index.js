@@ -453,6 +453,11 @@ const routes = [
         component: () => import('../views/client/tools/InformationManager.jsx')
       },
       {
+        path: 'tools/ai-agents',
+        name: 'ClientAIAgents',
+        component: () => import('../views/client/ClientAIAgents.jsx')
+      },
+      {
         path: 'tools/case-setup',
         name: 'CaseTypeManager',
         component: () => import('../views/client/tools/CaseTypeManager.jsx')
