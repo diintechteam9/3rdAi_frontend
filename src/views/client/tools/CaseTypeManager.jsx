@@ -19,6 +19,8 @@ export default {
         const view = ref('list'); // 'list' | 'edit'
         const currentCT = ref(null);
         const toast = ref({ show: false, msg: '', type: 'success' });
+        const isUploadingIcon = ref({}); // { 'fieldIndex-optIndex': true }
+        const localPreviews = ref({}); // { 'fieldIndex-optIndex': 'blob:...' }
 
         const showToast = (msg, type = 'success') => {
             toast.value = { show: true, msg, type };
@@ -53,13 +55,15 @@ export default {
                 icon: 'ShieldCheckIcon',
                 color: '#6366f1',
                 description: '',
-                fields: []
+                fields: [],
+                subCategories: []
             };
             view.value = 'edit';
         };
 
         const startEdit = (ct) => {
             currentCT.value = JSON.parse(JSON.stringify(ct)); // path clone
+            if (!currentCT.value.subCategories) currentCT.value.subCategories = [];
             view.value = 'edit';
         };
 
@@ -132,6 +136,104 @@ export default {
             }
         };
 
+        const toggleCaseTypeStatus = async (ct) => {
+            const newStatus = !ct.isActive;
+            try {
+                const res = await fetch(`${API_BASE_URL}/client/case-types/${ct._id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify({ isActive: newStatus })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    ct.isActive = newStatus; // Optimistic update
+                    showToast(`Case type ${newStatus ? 'activated' : 'deactivated'}`);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        };
+
+        const handleIconUpload = async (event, fieldIdx, optIdx) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const key = `${fieldIdx}-${optIdx}`;
+            isUploadingIcon.value[key] = true;
+
+            try {
+                // 1. Get Presigned URL
+                const res = await fetch(`${API_BASE_URL}/mobile/cases/upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                const data = await res.json();
+                
+                if (!data.success) throw new Error(data.message);
+
+                const { uploadUrl, key: r2Key } = data.data;
+
+                // 2. Upload to R2
+                const uploadRes = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: file,
+                    headers: { 'Content-Type': file.type }
+                });
+
+                if (!uploadRes.ok) throw new Error('Failed to upload to R2');
+
+                // Generate local preview for immediate display
+                localPreviews.value[key] = URL.createObjectURL(file);
+
+                // 3. Update Icon Key in currentCT (This will be saved to DB)
+                currentCT.value.fields[fieldIdx].options[optIdx].icon = r2Key;
+                showToast('Icon uploaded successfully');
+            } catch (error) {
+                console.error('[CaseTypeManager] upload error:', error);
+                showToast(error.message || 'Icon upload failed', 'error');
+            } finally {
+                isUploadingIcon.value[key] = false;
+            }
+        };
+
+        const handleSubIconUpload = async (event, optIdx) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const key = `sub-${optIdx}`;
+            isUploadingIcon.value[key] = true;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/mobile/cases/upload-url?fileName=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message);
+                const { uploadUrl, key: r2Key } = data.data;
+
+                const uploadRes = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: file,
+                    headers: { 'Content-Type': file.type }
+                });
+                if (!uploadRes.ok) throw new Error('Failed to upload to R2');
+
+                localPreviews.value[key] = URL.createObjectURL(file);
+                currentCT.value.subCategories[optIdx].icon = r2Key;
+                showToast('Icon uploaded successfully');
+            } catch (error) {
+                showToast(error.message || 'Icon upload failed', 'error');
+            } finally {
+                isUploadingIcon.value[key] = false;
+            }
+        };
+
+
         onMounted(fetchCaseTypes);
 
         return () => (
@@ -175,9 +277,8 @@ export default {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
                                 {caseTypes.value.map(ct => (
                                     <div key={ct._id} style={{ background: 'white', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}>
-                                        <div style={{ position: 'absolute', top: 0, left: 0, height: '4px', width: '100%', background: ct.color }}></div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: ct.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ct.color }}>
+                                            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f43f5e' + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f43f5e' }}>
                                                 <ShieldCheckIcon style={{ width: '24px', height: '24px' }} />
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -190,19 +291,23 @@ export default {
                                             </div>
                                         </div>
                                         <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>{ct.name}</h3>
-                                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px', flex: 1 }}>{ct.description || 'No description provided'}</p>
-
-                                        {/* Sub-option Preview */}
-                                        {ct.fields?.some(f => f.type === 'select' && f.options?.some(o => o.icon)) && (
+                                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px', flex: 1 }}>{ct.description || 'No description provided'}</p>                                        {/* Sub-Category Tile Previews */}
+                                        {ct.subCategories && ct.subCategories.length > 0 && (
                                             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                                                {ct.fields.find(f => f.type === 'select' && f.options?.some(o => o.icon)).options.slice(0, 4).map(opt => (
-                                                    <div key={opt.value} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }} title={opt.label}>
-                                                        {opt.icon?.startsWith('http') ? <img src={opt.icon} style={{ width: '18px' }} /> : (opt.icon || '📍')}
+                                                {ct.subCategories.slice(0, 4).map((sub, sidx) => (
+                                                    <div key={sidx} style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', overflow: 'hidden' }} title={sub.label}>
+                                                        {sub.icon?.startsWith('http') ? (
+                                                            <img src={sub.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>
+                                                                {sub.label?.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 ))}
-                                                {ct.fields.find(f => f.type === 'select' && f.options?.some(o => o.icon)).options.length > 4 && (
-                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', fontWeight: '800' }}>
-                                                        +{ct.fields.find(f => f.type === 'select' && f.options?.some(o => o.icon)).options.length - 4}
+                                                {ct.subCategories.length > 4 && (
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#64748b', fontWeight: '800' }}>
+                                                        +{ct.subCategories.length - 4}
                                                     </div>
                                                 )}
                                             </div>
@@ -210,9 +315,42 @@ export default {
 
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
                                             <span style={{ color: '#94a3b8' }}>{ct.fields?.length || 0} Dynamic Fields</span>
-                                            <span style={{ padding: '4px 10px', borderRadius: '99px', background: ct.isActive ? '#d1fae5' : '#f1f5f9', color: ct.isActive ? '#065f46' : '#64748b', fontWeight: '600' }}>
-                                                {ct.isActive ? 'Active' : 'Inactive'}
-                                            </span>
+                                            <div 
+                                                onClick={() => toggleCaseTypeStatus(ct)}
+                                                style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '8px', 
+                                                    cursor: 'pointer',
+                                                    padding: '4px 12px',
+                                                    borderRadius: '99px',
+                                                    background: ct.isActive ? '#d1fae5' : '#f1f5f9',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <div style={{ 
+                                                    width: '32px', 
+                                                    height: '16px', 
+                                                    borderRadius: '16px', 
+                                                    background: ct.isActive ? '#10b981' : '#cbd5e1', 
+                                                    position: 'relative',
+                                                    transition: 'all 0.3s'
+                                                }}>
+                                                    <div style={{ 
+                                                        width: '12px', 
+                                                        height: '12px', 
+                                                        background: 'white', 
+                                                        borderRadius: '50%', 
+                                                        position: 'absolute', 
+                                                        top: '2px', 
+                                                        left: ct.isActive ? '18px' : '2px',
+                                                        transition: 'all 0.3s'
+                                                    }}></div>
+                                                </div>
+                                                <span style={{ color: ct.isActive ? '#065f46' : '#64748b', fontWeight: '700', fontSize: '12px' }}>
+                                                    {ct.isActive ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -220,145 +358,218 @@ export default {
                         )}
                     </div>
                 ) : (
-                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    <div style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '100px' }}>
                         <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <button onClick={() => view.value = 'list'} style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'white', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <button onClick={() => view.value = 'list'} style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'white', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
                                 <ChevronLeftIcon style={{ width: '20px', height: '20px' }} />
                             </button>
-                            <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111827' }}>
-                                {currentCT.value._id ? 'Edit Case Type' : 'New Case Type'}
-                            </h1>
+                            <div>
+                                <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', margin: 0 }}>
+                                    {currentCT.value._id ? 'Edit Case Configuration' : 'Create New Case Type'}
+                                </h1>
+                                <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0' }}>Define how this case appears and what information is collected.</p>
+                            </div>
                         </div>
 
-                        <div style={{ display: 'grid', gap: '24px' }}>
-                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px', color: '#1e293b' }}>Basic Information</h3>
-                                <div style={{ display: 'grid', gap: '20px' }}>
+                        <div style={{ display: 'grid', gap: '32px' }}>
+                            {/* STEP 1: IDENTITY */}
+                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>1</div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Basic Identity</h3>
+                                </div>
+                                
+                                <div style={{ display: 'grid', gap: '24px' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Case Type Name *</label>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Case Type Name *</label>
                                         <input
                                             v-model={currentCT.value.name}
-                                            placeholder="e.g., Street Light Not Working"
+                                            placeholder="Example: Snatching, Accident..."
                                             onInput={e => currentCT.value.name = e.target.value}
-                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                            style={{ width: '100%', padding: '14px 18px', borderRadius: '14px', border: '2px solid #f1f5f9', outline: 'none', fontSize: '16px', background: '#f8fafc' }}
                                         />
                                     </div>
+
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Description</label>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Description / Purpose</label>
                                         <textarea
                                             v-model={currentCT.value.description}
                                             onInput={e => currentCT.value.description = e.target.value}
-                                            placeholder="Give a short description of what this case is about..."
-                                            rows="3"
-                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none', resize: 'none' }}
+                                            placeholder="Short explanation for users..."
+                                            rows="2"
+                                            style={{ width: '100%', padding: '14px 18px', borderRadius: '14px', border: '2px solid #f1f5f9', outline: 'none', fontSize: '15px', background: '#f8fafc', resize: 'none' }}
                                         />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Brand Color</label>
-                                            <input
-                                                type="color"
-                                                value={currentCT.value.color}
-                                                onInput={e => currentCT.value.color = e.target.value}
-                                                style={{ width: '100%', height: '45px', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Status</label>
-                                            <select
-                                                value={currentCT.value.isActive}
-                                                onChange={e => currentCT.value.isActive = e.target.value === 'true'}
-                                                style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
-                                            >
-                                                <option value="true">Active</option>
-                                                <option value="false">Inactive</option>
-                                            </select>
-                                        </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Visibility Status</label>
+                                        <select
+                                            value={currentCT.value.isActive}
+                                            onChange={e => currentCT.value.isActive = e.target.value === 'true'}
+                                            style={{ width: '100%', padding: '14px 18px', borderRadius: '14px', border: '2px solid #f1f5f9', outline: 'none', background: '#f8fafc', fontWeight: '600' }}
+                                        >
+                                            <option value="true">Active (Visible on Mobile)</option>
+                                            <option value="false">Inactive (Hidden)</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
 
-                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            {/* STEP 2: SUB-CATEGORY TILES */}
+                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                    <div style={{ borderLeft: '4px solid #f43f5e', paddingLeft: '12px' }}>
-                                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Custom Form Fields</h3>
-                                        <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>Add extra questions users should answer for this specific case type.</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>2</div>
+                                        <div>
+                                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Sub-Category Tiles</h3>
+                                            <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>These appear as shortcuts on the mobile app home screen.</p>
+                                        </div>
                                     </div>
                                     <button
-                                        onClick={addField}
-                                        style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        onClick={() => currentCT.value.subCategories.push({ label: '', value: '', icon: '' })}
+                                        style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                                     >
-                                        <PlusIcon style={{ width: '16px', height: '16px' }} />
-                                        Add Question
+                                        <PlusIcon style={{ width: '18px' }} /> Add Tile
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'grid', gap: '16px' }}>
-                                    {currentCT.value.fields.map((field, index) => (
-                                        <div key={index} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', position: 'relative' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
+                                    {currentCT.value.subCategories?.map((sub, idx) => (
+                                        <div key={idx} style={{ background: '#f8fafc', padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9', position: 'relative' }}>
                                             <button
-                                                onClick={() => removeField(index)}
-                                                style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                                                onClick={() => currentCT.value.subCategories.splice(idx, 1)}
+                                                style={{ position: 'absolute', top: '12px', right: '12px', width: '24px', height: '24px', borderRadius: '12px', background: '#fee2e2', color: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             >
-                                                <XMarkIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />
+                                                <XMarkIcon style={{ width: '14px' }} />
                                             </button>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                                <div 
+                                                    onClick={() => document.getElementById(`sub-file-${idx}`).click()}
+                                                    style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'white', border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+                                                >
+                                                    {isUploadingIcon.value[`sub-${idx}`] ? (
+                                                        <div style={{ fontSize: '11px', fontWeight: '700' }}>...</div>
+                                                    ) : (localPreviews.value[`sub-${idx}`] || sub.icon) ? (
+                                                        <img src={localPreviews.value[`sub-${idx}`] || sub.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <PlusIcon style={{ width: '24px', color: '#94a3b8' }} />
+                                                    )}
+                                                </div>
+                                                <input 
+                                                    type="file" 
+                                                    id={`sub-file-${idx}`} 
+                                                    style={{ display: 'none' }} 
+                                                    onChange={(e) => handleSubIconUpload(e, idx)}
+                                                />
+                                                <input
+                                                    placeholder="Tile Label (e.g. Mobile)"
+                                                    value={sub.label}
+                                                    onInput={e => { sub.label = e.target.value; sub.value = e.target.value; }}
+                                                    style={{ width: '100%', textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '2px solid #e2e8f0', padding: '4px 0', fontSize: '15px', fontWeight: '700', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!currentCT.value.subCategories || currentCT.value.subCategories.length === 0) && (
+                                        <div 
+                                            onClick={() => currentCT.value.subCategories.push({ label: '', value: '', icon: '' })}
+                                            style={{ gridColumn: '1 / -1', height: '100px', border: '2px dashed #e2e8f0', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', cursor: 'pointer' }}
+                                        >
+                                            Add your first Sub-Category Tile
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                                            <div style={{ display: 'grid', gap: '16px' }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                            {/* STEP 3: ADDITIONAL QUESTIONS */}
+                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff7ed', color: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>3</div>
+                                        <div>
+                                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Custom Form Builder</h3>
+                                            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0' }}>Tailor the form users fill out after clicking a tile.</p>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button
+                                            onClick={addField}
+                                            style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            <PlusIcon style={{ width: '18px' }} /> Add Question
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gap: '20px' }}>
+                                    {currentCT.value.fields.map((field, index) => (
+                                        <div key={index} style={{ 
+                                            background: field.isActive === false ? '#f1f5f9' : '#f8fafc', 
+                                            border: '1px solid #e2e8f0', 
+                                            borderRadius: '20px', 
+                                            padding: '24px', 
+                                            position: 'relative', 
+                                            display: 'flex', 
+                                            gap: '20px',
+                                            opacity: field.isActive === false ? 0.6 : 1
+                                        }}>
+                                            <div style={{ minWidth: '40px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#94a3b8', fontSize: '14px' }}>
+                                                    Q{index + 1}
+                                                </div>
+                                            </div>
+
+                                            <div style={{ flex: 1, display: 'grid', gap: '20px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
                                                     <div>
-                                                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Question Label *</label>
+                                                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Label *</label>
                                                         <input
                                                             v-model={field.label}
                                                             onInput={e => field.label = e.target.value}
-                                                            placeholder="e.g., What is the height of the suspect?"
-                                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                                            placeholder="e.g., What happened?"
+                                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Answer Type</label>
+                                                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Type</label>
                                                         <select
-                                                            v-model={field.type}
+                                                            value={field.type}
                                                             onChange={e => field.type = e.target.value}
-                                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
                                                         >
-                                                            <option value="text">Text Box</option>
-                                                            <option value="textarea">Large Paragraph</option>
-                                                            <option value="number">Numeric Only</option>
-                                                            <option value="select">Selection Dropdown</option>
-                                                            <option value="date">Date picker</option>
+                                                            <option value="text">Text</option>
+                                                            <option value="number">Number</option>
+                                                            <option value="boolean">Yes/No Question</option>
                                                         </select>
                                                     </div>
                                                 </div>
 
                                                 {field.type === 'select' && (
-                                                    <div style={{ marginTop: '12px' }}>
-                                                        <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Selection Options (Labels & Icons)</label>
-                                                        <div style={{ display: 'grid', gap: '8px' }}>
+                                                    <div style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                                        <div style={{ display: 'grid', gap: '10px' }}>
                                                             {field.options && field.options.map((opt, optIdx) => (
-                                                                <div key={optIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 32px', gap: '8px', alignItems: 'center' }}>
+                                                                <div key={optIdx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                                                     <input
-                                                                        placeholder="Label (e.g. MOBILE)"
+                                                                        placeholder="Option name..."
                                                                         value={opt.label}
                                                                         onInput={e => { opt.label = e.target.value; opt.value = e.target.value; }}
-                                                                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-                                                                    />
-                                                                    <input
-                                                                        placeholder="Icon URL or Emoji"
-                                                                        value={opt.icon}
-                                                                        onInput={e => opt.icon = e.target.value}
-                                                                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                                                                        style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }}
                                                                     />
                                                                     <button
                                                                         onClick={() => field.options.splice(optIdx, 1)}
-                                                                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                                                        style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
                                                                     >
-                                                                        <XMarkIcon style={{ width: '16px', height: '16px' }} />
+                                                                        <XMarkIcon style={{ width: '18px' }} />
                                                                     </button>
                                                                 </div>
                                                             ))}
                                                             <button
-                                                                onClick={() => field.options.push({ label: '', value: '', icon: '' })}
-                                                                style={{ padding: '8px', border: '1px dashed #cbd5e1', borderRadius: '8px', background: 'white', color: '#6366f1', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
+                                                                onClick={() => {
+                                                                    if (!field.options) field.options = [];
+                                                                    field.options.push({ label: '', value: '', icon: '' });
+                                                                }}
+                                                                style={{ padding: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', color: '#6366f1', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
                                                             >
                                                                 + Add Option
                                                             </button>
@@ -366,38 +577,40 @@ export default {
                                                     </div>
                                                 )}
 
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={field.required}
-                                                        onChange={e => field.required = e.target.checked}
-                                                        id={`req-${index}`}
-                                                    />
-                                                    <label for={`req-${index}`} style={{ fontSize: '14px', color: '#475569', cursor: 'pointer' }}>Mandatory field (Required to submit form)</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                                                    <button
+                                                        onClick={() => removeField(index)}
+                                                        style={{ background: 'white', border: '1px solid #fee2e2', color: '#ef4444', padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+                                                    >
+                                                        Delete Question
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
 
-                                    {currentCT.value.fields.length === 0 && (
-                                        <div style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '16px', color: '#64748b' }}>
-                                            Pehle se kuch standard fields (Location, Photo, Description) har case mein rahenge. Naye sawal add karne ke liye upar "Add Question" button dabayein.
+                                    {(!currentCT.value.fields || currentCT.value.fields.length === 0) && (
+                                        <div 
+                                            onClick={addField}
+                                            style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '24px', color: '#64748b', cursor: 'pointer' }}
+                                        >
+                                            Add the first question for this case form.
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>
                                 <button
                                     onClick={() => view.value = 'list'}
-                                    style={{ padding: '12px 32px', borderRadius: '12px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '600', color: '#475569', cursor: 'pointer' }}
+                                    style={{ padding: '12px 32px', borderRadius: '14px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
                                     disabled={loading.value}
-                                    style={{ padding: '12px 32px', borderRadius: '12px', border: 'none', background: '#f43f5e', color: 'white', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(244, 63, 94, 0.2)' }}
+                                    style={{ padding: '12px 40px', borderRadius: '14px', border: 'none', background: '#f43f5e', color: 'white', fontWeight: '800', cursor: 'pointer' }}
                                 >
                                     {loading.value ? 'Saving...' : 'Save Configuration'}
                                 </button>
@@ -407,5 +620,5 @@ export default {
                 )}
             </div>
         );
-    }
+    },
 };

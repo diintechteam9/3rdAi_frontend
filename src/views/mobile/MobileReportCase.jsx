@@ -23,9 +23,39 @@ export default {
             longitude: null,
             dateTime: new Date().toISOString().slice(0, 16),
             description: '',
-            media: [],
+            media: [], // Local preview URLs
+            mediaKeys: [], // R2 keys
             dynamicData: {}
         });
+
+        const preFilledField = ref(null);
+        const selectedSubTypeLabel = ref('');
+        const isUploading = ref(false);
+        const activeTab = ref('track'); // 'track' or 'report'
+
+        const handleImageUpload = async (event) => {
+// ... (rest of handleImageUpload remains the same)
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            isUploading.value = true;
+            try {
+                for (const file of files) {
+                    const res = await api.getR2UploadUrl(file.name, file.type);
+                    if (res?.success) {
+                        const { uploadUrl, key } = res.data;
+                        await api.uploadFileToR2(uploadUrl, file);
+                        formData.value.mediaKeys.push(key);
+                        formData.value.media.push(URL.createObjectURL(file));
+                    }
+                }
+            } catch (e) {
+                console.error('Upload failed:', e);
+                alert('Media upload failed');
+            } finally {
+                isUploading.value = false;
+            }
+        };
 
         const fetchCaseTypes = async () => {
             isFetching.value = true;
@@ -41,6 +71,9 @@ export default {
 
         const handleCategoryClick = (ct) => {
             selectedCT.value = ct;
+            preFilledField.value = null;
+            selectedSubTypeLabel.value = '';
+            
             // Initialize dynamic data
             const dyn = {};
             ct.fields?.forEach(f => dyn[f.name] = '');
@@ -48,11 +81,14 @@ export default {
             currentStep.value = 1;
         };
 
-        const handleSubOptionClick = (ct, fieldName, value) => {
+        const handleSubOptionClick = (ct, fieldName, opt) => {
             selectedCT.value = ct;
+            selectedSubTypeLabel.value = opt.label;
+            preFilledField.value = fieldName;
+            
             const dyn = {};
             ct.fields?.forEach(f => dyn[f.name] = '');
-            dyn[fieldName] = value;
+            dyn[fieldName] = opt.value;
             formData.value.dynamicData = dyn;
             currentStep.value = 1; // Jump to description
         };
@@ -74,12 +110,12 @@ export default {
                     title: `New ${selectedCT.value.name} Case`,
                     latitude: formData.value.latitude,
                     longitude: formData.value.longitude,
-                    formData: {
-                        type: selectedCT.value.id,
-                        ...formData.value.dynamicData,
-                        description: formData.value.description,
-                        dateTime: formData.value.dateTime
-                    }
+                    location: formData.value.location,
+                    dateTime: formData.value.dateTime,
+                    description: formData.value.description,
+                    caseType: selectedCT.value.id,
+                    ...formData.value.dynamicData,
+                    mediaKeys: formData.value.mediaKeys
                 };
                 await api.reportCase(payload);
                 router.replace('/mobile/user/dashboard');
@@ -133,64 +169,122 @@ export default {
 
         // Sub-renderers
         const renderStep0 = () => (
-            <div style={{ padding: '20px' }}>
-                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Report Incident</h2>
-                <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Select a category and sub-type to begin.</p>
+            <div style={{ padding: '0 20px 20px' }}>
+                {/* Modern Tab Switcher */}
+                <div style={{ 
+                    display: 'flex', 
+                    background: 'rgba(255,255,255,0.03)', 
+                    padding: '4px', 
+                    borderRadius: '16px', 
+                    marginBottom: '24px',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    position: 'sticky',
+                    top: '0',
+                    zIndex: '20',
+                    backdropFilter: 'blur(10px)'
+                }}>
+                    <button 
+                        onClick={() => activeTab.value = 'track'}
+                        style={{ 
+                            flex: 1,
+                            padding: '12px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            background: activeTab.value === 'track' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
+                            color: activeTab.value === 'track' ? 'white' : '#94a3b8',
+                            fontWeight: '800',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: activeTab.value === 'track' ? '0 4px 15px rgba(99, 102, 241, 0.3)' : 'none'
+                        }}
+                    >
+                        Track Status
+                    </button>
+                    <button 
+                        onClick={() => activeTab.value = 'report'}
+                        style={{ 
+                            flex: 1,
+                            padding: '12px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            background: activeTab.value === 'report' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
+                            color: activeTab.value === 'report' ? 'white' : '#94a3b8',
+                            fontWeight: '800',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: activeTab.value === 'report' ? '0 4px 15px rgba(99, 102, 241, 0.3)' : 'none'
+                        }}
+                    >
+                        Add New Case
+                    </button>
+                </div>
 
-                <div style={{ display: 'grid', gap: '12px' }}>
-                    {caseTypes.value.map(ct => {
-                        // Find the first select field to use as visual selector
-                        const selectField = ct.fields?.find(f => f.type === 'select');
+                {/* Track Status View */}
+                {activeTab.value === 'track' && (
+                    <div className="fade-in-section">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', padding: '0 4px' }}>
+                            <div style={{ width: '4px', height: '18px', background: '#6366f1', borderRadius: '2px' }}></div>
+                            <h2 style={{ color: 'white', fontSize: '18px', fontWeight: '800', margin: 0 }}>My Cases</h2>
+                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginLeft: 'auto', letterSpacing: '0.05em' }}>Real-time Updates</span>
+                        </div>
+                        <div style={{ margin: '0 -20px' }}>
+                            <MyCases />
+                        </div>
+                    </div>
+                )}
 
-                        return (
-                            <div key={ct.id} className="glass-card" style={{ borderRadius: '24px', padding: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: (selectField ? '16px' : '0') }}>
-                                    <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: ct.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ct.color, border: `1px solid ${ct.color}30`, flexShrink: 0 }}>
-                                        {resolveIcon(ct.icon, '22px')}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <h3 style={{ color: 'white', fontWeight: '800', margin: '0 0 2px', fontSize: '15px' }}>{ct.name}</h3>
-                                        <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ct.description}</p>
-                                    </div>
-                                    <button onClick={() => handleCategoryClick(ct)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.05)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        <ArrowRightIcon style={{ width: '16px', height: '16px' }} />
-                                    </button>
-                                </div>
-
-                                {selectField && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
-                                        {selectField.options?.map(opt => (
-                                            <div key={opt.value} onClick={() => handleSubOptionClick(ct, selectField.name, opt.value)} className="sub-option-grid-item" style={{ textAlign: 'center', cursor: 'pointer' }}>
-                                                <div style={{ width: '42px', height: '42px', margin: '0 auto 4px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', color: ct.color }}>
-                                                    {resolveIcon(opt.icon, '16px', opt.label)}
-                                                </div>
-                                                <div style={{ fontSize: '7px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.label}</div>
+                {/* Add New Case View */}
+                {activeTab.value === 'report' && (
+                    <div className="fade-in-section">
+                        <div style={{ padding: '0 4px', marginBottom: '20px' }}>
+                            <h2 style={{ color: 'white', fontSize: '20px', fontWeight: '800', marginBottom: '4px' }}>Select Category</h2>
+                            <p style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>What kind of incident are you reporting?</p>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gap: '12px' }}>
+                            {caseTypes.value.map(ct => {
+                                const selectField = ct.fields?.find(f => f.type === 'select');
+                                return (
+                                    <div key={ct.id} className="glass-card" style={{ borderRadius: '24px', padding: '16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: (selectField ? '16px' : '0') }}>
+                                            <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: ct.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ct.color, border: `1px solid ${ct.color}30`, flexShrink: 0 }}>
+                                                {resolveIcon(ct.icon, '22px')}
                                             </div>
-                                        ))}
-                                        <div onClick={() => handleCategoryClick(ct)} className="sub-option-grid-item" style={{ textAlign: 'center', cursor: 'pointer' }}>
-                                            <div style={{ width: '42px', height: '42px', margin: '0 auto 4px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', border: '1px dashed rgba(255,255,255,0.1)' }}>
-                                                <PlusIcon style={{ width: '14px' }} />
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <h3 style={{ color: 'white', fontWeight: '800', margin: '0 0 2px', fontSize: '15px' }}>{ct.name}</h3>
+                                                <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ct.description}</p>
                                             </div>
-                                            <div style={{ fontSize: '7px', color: '#475569', fontWeight: '800', textTransform: 'uppercase' }}>OTHERS</div>
+                                            <button onClick={() => handleCategoryClick(ct)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.05)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <ArrowRightIcon style={{ width: '16px', height: '16px' }} />
+                                            </button>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
 
-                {/* Track Status Section */}
-                <div style={{ marginTop: '32px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', padding: '0 4px' }}>
-                        <div style={{ width: '4px', height: '18px', background: '#6366f1', borderRadius: '2px' }}></div>
-                        <h2 style={{ color: 'white', fontSize: '18px', fontWeight: '800', margin: 0 }}>Track Status</h2>
-                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginLeft: 'auto', letterSpacing: '0.05em' }}>Real-time Updates</span>
+                                        {selectField && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
+                                                {selectField.options?.map(opt => (
+                                                    <div key={opt.value} onClick={() => handleSubOptionClick(ct, selectField.name, opt)} className="sub-option-grid-item" style={{ textAlign: 'center', cursor: 'pointer' }}>
+                                                        <div style={{ width: '42px', height: '42px', margin: '0 auto 4px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', color: ct.color }}>
+                                                            {resolveIcon(opt.icon, '16px', opt.label)}
+                                                        </div>
+                                                        <div style={{ fontSize: '7px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.label}</div>
+                                                    </div>
+                                                ))}
+                                                <div onClick={() => handleCategoryClick(ct)} className="sub-option-grid-item" style={{ textAlign: 'center', cursor: 'pointer' }}>
+                                                    <div style={{ width: '42px', height: '42px', margin: '0 auto 4px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                                                        <PlusIcon style={{ width: '14px' }} />
+                                                    </div>
+                                                    <div style={{ fontSize: '7px', color: '#475569', fontWeight: '800', textTransform: 'uppercase' }}>OTHERS</div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                    <div style={{ margin: '0 -20px' }}>
-                        <MyCases />
-                    </div>
-                </div>
+                )}
             </div>
         );
 
@@ -210,17 +304,40 @@ export default {
                         placeholder="e.g. Armed robbery by 2 people on a blue bike, heading North..."
                         style={{ flex: 1, width: '100%', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '20px', color: 'white', resize: 'none', fontSize: '15px', lineHeight: '1.6', outline: 'none' }}
                     />
+
+                    {formData.value.media.length > 0 && (
+                        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginTop: '20px', paddingBottom: '10px' }}>
+                            {formData.value.media.map((u, i) => (
+                                <div key={i} style={{ width: '80px', height: '80px', borderRadius: '16px', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(255,255,255,0.1)' }}>
+                                    <img src={u} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                            ))}
+                            {isUploading.value && (
+                                <div style={{ width: '80px', height: '80px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <div className="upload-spinner"></div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '24px' }}>
-                        {[{ i: PhotoIcon, l: 'Photo' }, { i: VideoCameraIcon, l: 'Video' }, { i: FireIcon, l: 'Audio' }].map(m => (
-                            <div key={m.l} style={{ background: 'rgba(255,255,255,0.03)', padding: '16px 8px', borderRadius: '20px', textAlign: 'center', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <m.i style={{ width: '24px', margin: '0 auto 6px' }} />
-                                <div style={{ fontSize: '11px', fontWeight: '700' }}>{m.l}</div>
-                            </div>
-                        ))}
+                        <label style={{ background: 'rgba(255,255,255,0.03)', padding: '16px 8px', borderRadius: '20px', textAlign: 'center', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                            <PhotoIcon style={{ width: '24px', margin: '0 auto 6px' }} />
+                            <div style={{ fontSize: '11px', fontWeight: '700' }}>Photo</div>
+                            <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
+                        </label>
+                        <div style={{ background: 'rgba(255,255,255,0.01)', padding: '16px 8px', borderRadius: '20px', textAlign: 'center', color: '#475569', border: '1px dashed rgba(255,255,255,0.05)', opacity: 0.6 }}>
+                            <VideoCameraIcon style={{ width: '24px', margin: '0 auto 6px' }} />
+                            <div style={{ fontSize: '11px', fontWeight: '700' }}>Video</div>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.01)', padding: '16px 8px', borderRadius: '20px', textAlign: 'center', color: '#475569', border: '1px dashed rgba(255,255,255,0.05)', opacity: 0.6 }}>
+                            <FireIcon style={{ width: '24px', margin: '0 auto 6px' }} />
+                            <div style={{ fontSize: '11px', fontWeight: '700' }}>Audio</div>
+                        </div>
                     </div>
                 </div>
-                <button onClick={() => currentStep.value = 2} className="premium-continue-btn">
-                    Continue <ArrowRightIcon style={{ width: '18px' }} />
+                <button onClick={() => currentStep.value = 2} className="premium-continue-btn" disabled={isUploading.value}>
+                    {isUploading.value ? 'Uploading Media...' : 'Continue'} <ArrowRightIcon style={{ width: '18px' }} />
                 </button>
             </div>
         );
@@ -277,7 +394,7 @@ export default {
                             </div>
                             <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'white', margin: 0 }}>Additional Details</h2>
                         </div>
-                        {fields.map(f => (
+                        {fields.filter(f => f.name !== preFilledField.value).map(f => (
                             <div key={f.name} style={{ marginBottom: '20px' }}>
                                 <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block', letterSpacing: '0.05em' }}>{f.label}</label>
                                 {f.type === 'select' ? (
@@ -289,6 +406,34 @@ export default {
                                         <option value="" style={{ background: '#1e293b' }}>Select {f.label}</option>
                                         {f.options?.map(o => <option key={o.value} value={o.value} style={{ background: '#1e293b' }}>{o.label}</option>)}
                                     </select>
+                                ) : f.type === 'boolean' ? (
+                                    <div 
+                                        onClick={() => formData.value.dynamicData[f.name] = (formData.value.dynamicData[f.name] === 'Yes' ? 'No' : 'Yes')}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '12px 20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}
+                                    >
+                                        <div style={{ 
+                                            width: '40px', 
+                                            height: '24px', 
+                                            borderRadius: '12px', 
+                                            background: formData.value.dynamicData[f.name] === 'Yes' ? '#10b981' : 'rgba(255,255,255,0.1)', 
+                                            position: 'relative',
+                                            transition: 'all 0.3s'
+                                        }}>
+                                            <div style={{ 
+                                                width: '18px', 
+                                                height: '18px', 
+                                                background: 'white', 
+                                                borderRadius: '50%', 
+                                                position: 'absolute', 
+                                                top: '3px', 
+                                                left: formData.value.dynamicData[f.name] === 'Yes' ? '19px' : '3px',
+                                                transition: 'all 0.3s'
+                                            }}></div>
+                                        </div>
+                                        <span style={{ color: 'white', fontWeight: '800', fontSize: '14px' }}>
+                                            {formData.value.dynamicData[f.name] === 'Yes' ? 'Yes' : 'No'}
+                                        </span>
+                                    </div>
                                 ) : (
                                     <input
                                         type={f.type === 'number' ? 'number' : 'text'}
@@ -314,6 +459,7 @@ export default {
 
                     {[
                         { l: 'Incident Category', v: selectedCT.value.name, c: selectedCT.value.color },
+                        ...(selectedSubTypeLabel.value ? [{ l: 'Sub-Type', v: selectedSubTypeLabel.value, c: selectedCT.value.color }] : []),
                         { l: 'Location Reported', v: formData.value.location },
                         { l: 'Description Summary', v: formData.value.description || 'No description provided.' }
                     ].map(item => (
@@ -374,6 +520,18 @@ export default {
                         to { opacity: 1; transform: translateY(0); }
                     }
                     .fade-in-section { animation: fadeIn 0.4s ease forwards; }
+
+                    .upload-spinner {
+                        width: 20px;
+                        height: 20px;
+                        border: 2px solid rgba(255,255,255,0.1);
+                        border-top-color: #6366f1;
+                        border-radius: 50%;
+                        animation: spin 0.8s linear infinite;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
                 `}</style>
 
                 {/* Navbar */}

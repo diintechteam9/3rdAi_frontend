@@ -48,7 +48,7 @@ export default {
       error.value = '';
 
       try {
-        const response = await api.request('/mobile/user/register/step1', {
+        const response = await api.request(`/mobile/user/register/step1/${DEFAULT_CLIENT_ID.value}`, {
           method: 'POST',
           body: {
             email: email.value,
@@ -77,7 +77,7 @@ export default {
       error.value = '';
 
       try {
-        const response = await api.request('/mobile/user/register/step1/verify', {
+        const response = await api.request(`/mobile/user/register/step1/verify/${DEFAULT_CLIENT_ID.value}`, {
           method: 'POST',
           body: {
             email: email.value,
@@ -120,7 +120,7 @@ export default {
       error.value = '';
 
       try {
-        const response = await api.request('/mobile/user/register/step2', {
+        const response = await api.request(`/mobile/user/register/step2/${DEFAULT_CLIENT_ID.value}`, {
           method: 'POST',
           body: {
             email: email.value,
@@ -148,7 +148,7 @@ export default {
       error.value = '';
 
       try {
-        const response = await api.request('/mobile/user/register/step2/verify', {
+        const response = await api.request(`/mobile/user/register/step2/verify/${DEFAULT_CLIENT_ID.value}`, {
           method: 'POST',
           body: {
             email: email.value,
@@ -221,7 +221,7 @@ export default {
       }
 
       try {
-        const response = await api.request('/mobile/user/register/step3', {
+        const response = await api.request(`/mobile/user/register/step3/${DEFAULT_CLIENT_ID.value}`, {
           method: 'POST',
           body: {
             email: email.value,
@@ -295,7 +295,7 @@ export default {
       loading.value = true;
       error.value = '';
       try {
-        const { data } = await api.request('/mobile/user/register/google', {
+        const { data } = await api.request(`/mobile/user/register/google/${DEFAULT_CLIENT_ID.value}`, {
           method: 'POST',
           body: {
             credential: response.credential,

@@ -675,6 +675,29 @@ class ApiService {
     return this.request('/mobile/cases/types');
   }
 
+  // Get R2 Presigned Upload URL
+  async getR2UploadUrl(fileName, fileType) {
+    return this.request('/mobile/cases/upload-url', {
+      method: 'GET',
+      params: { fileName, fileType }
+    });
+  }
+
+  // Direct upload to R2
+  async uploadFileToR2(uploadUrl, file) {
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`R2 Upload failed: ${response.statusText}`);
+    }
+    return true;
+  }
+
   // Get User's Own Cases
   async getUserCases() {
     return this.request('/alerts/user', {

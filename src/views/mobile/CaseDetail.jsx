@@ -288,6 +288,20 @@ export default {
                             </div>
                         </div>
 
+                        {/* Media Section */}
+                        {caseData.value.mediaUrls && caseData.value.mediaUrls.length > 0 && (
+                            <div class="detail-card">
+                                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: '800', color: '#1e293b' }}>Media Attachment</h3>
+                                <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '5px' }}>
+                                    {caseData.value.mediaUrls.map((url, i) => (
+                                        <div key={i} style={{ width: '120px', height: '120px', borderRadius: '16px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0' }}>
+                                            <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Middle Section (Description) */}
                         <div class="detail-card">
                             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: '800', color: '#1e293b' }}>Description</h3>
