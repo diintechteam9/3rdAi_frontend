@@ -143,6 +143,20 @@ export default {
         const updateSuccess = ref('');
         const descCharCount = computed(() => updateForm.value.description.length);
 
+        // Media Preview State
+        const showImagePreview = ref(false);
+        const previewImageUrl = ref('');
+
+        const openImagePreview = (url) => {
+            previewImageUrl.value = url;
+            showImagePreview.value = true;
+        };
+
+        const closeImagePreview = () => {
+            showImagePreview.value = false;
+            previewImageUrl.value = '';
+        };
+
         // Custom Dropdown state
         const openDropdown = ref(null); // 'status', 'basis', or null
 
@@ -316,10 +330,22 @@ export default {
 
         // ── Render ─────────────────────────────────────────────────────────────
 
-        return () => (
+        return {
+            cases, loading, error, activeFilter, activeCategory, selectedCase, caseLoading,
+            updateForm, updateLoading, updateError, updateSuccess, descCharCount,
+            openDropdown, toggleDropdown, closeAllDropdowns,
+            filteredCases, allowedNextStatuses, availableBasisTypes, isTerminal, descriptionValid, formValid,
+            fetchCases, selectCase, submitUpdate,
+            getCaseCategory, getCategoryLabel, getPriority, getStatus, formatDate, formatShortDate, getTabCount,
+            showImagePreview, previewImageUrl, openImagePreview, closeImagePreview,
+            statusCounts, STATUS_TABS
+        };
+    },
+    render() {
+        return (
             <div
                 style={{ display: 'flex', height: '100%', fontFamily: "'Inter', -apple-system, sans-serif", background: 'transparent' }}
-                onClick={closeAllDropdowns}
+                onClick={this.closeAllDropdowns}
             >
                 <style>{`
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -615,17 +641,21 @@ export default {
                         font-size: 0.875rem;
                         font-weight: 600;
                     }
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
                 `}</style>
 
                 {/* ── LEFT PANEL: Case List ───────────────────────────────── */}
                 <div style={{
-                    width: selectedCase.value ? '42%' : '100%',
+                    width: this.selectedCase ? '42%' : '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
                     overflow: 'hidden',
                     transition: 'width 0.3s ease',
-                    borderRight: selectedCase.value ? '1px solid #e2e8f0' : 'none'
+                    borderRight: this.selectedCase ? '1px solid #e2e8f0' : 'none'
                 }}>
 
                     {/* Header */}
@@ -639,11 +669,11 @@ export default {
                                 </div>
                             </div>
                             <button
-                                onClick={fetchCases}
-                                disabled={loading.value}
-                                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '0.4rem 0.6rem', color: 'white', cursor: loading.value ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                onClick={this.fetchCases}
+                                disabled={this.loading}
+                                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '0.4rem 0.6rem', color: 'white', cursor: this.loading ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
-                                {loading.value ? <span class="spinner" /> : '↻'}
+                                {this.loading ? <span class="spinner" /> : '↻'}
                             </button>
                         </div>
 
@@ -653,29 +683,29 @@ export default {
                                 {
                                     id: 'all',
                                     label: 'All',
-                                    val: cases.value.length,
+                                    val: this.cases.length,
                                     icon: '📋'
                                 },
                                 {
                                     id: 'open',
                                     label: 'Open',
-                                    val: (statusCounts.value['Under Review'] || 0) + (statusCounts.value['Verified'] || 0) + (statusCounts.value['Action Taken'] || 0),
+                                    val: (this.statusCounts['Under Review'] || 0) + (this.statusCounts['Verified'] || 0) + (this.statusCounts['Action Taken'] || 0),
                                     icon: '🕒'
                                 },
                                 {
                                     id: 'closed',
                                     label: 'Closed',
-                                    val: (statusCounts.value['Resolved'] || 0),
+                                    val: (this.statusCounts['Resolved'] || 0),
                                     icon: '✅'
                                 }
                             ].map(s => {
-                                const isActive = activeCategory.value === s.id;
+                                const isActive = this.activeCategory === s.id;
                                 return (
                                     <div
                                         key={s.id}
                                         onClick={() => {
-                                            activeCategory.value = s.id;
-                                            if (s.id !== 'all') activeFilter.value = null;
+                                            this.activeCategory = s.id;
+                                            if (s.id !== 'all') this.activeFilter = null;
                                         }}
                                         style={{
                                             background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)',
@@ -709,25 +739,25 @@ export default {
 
                     {/* Filter Tabs */}
                     <div style={{ background: 'white', padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
-                        {STATUS_TABS.map(tab => (
+                        {this.STATUS_TABS.map(tab => (
                             <button
                                 key={tab}
-                                class={['tab-btn', activeFilter.value === tab && activeCategory.value === 'all' ? 'active' : 'inactive'].join(' ')}
+                                class={['tab-btn', this.activeFilter === tab && this.activeCategory === 'all' ? 'active' : 'inactive'].join(' ')}
                                 onClick={() => {
-                                    activeFilter.value = tab;
-                                    activeCategory.value = 'all';
+                                    this.activeFilter = tab;
+                                    this.activeCategory = 'all';
                                 }}
                             >
                                 {tab}
                                 <span style={{
-                                    background: activeFilter.value === tab ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
-                                    color: activeFilter.value === tab ? 'white' : '#64748b',
+                                    background: this.activeFilter === tab ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                                    color: this.activeFilter === tab ? 'white' : '#64748b',
                                     borderRadius: '6px',
                                     padding: '2px 6px',
                                     fontSize: '10px',
                                     fontWeight: '800',
                                     transition: 'all 0.2s'
-                                }}>{getTabCount(tab)}</span>
+                                }}>{this.getTabCount(tab)}</span>
 
                             </button>
                         ))}
@@ -735,36 +765,36 @@ export default {
 
                     {/* Case List */}
                     <div style={{ flex: 1, overflowY: 'auto', padding: '0.875rem' }}>
-                        {loading.value ? (
+                        {this.loading ? (
                             <div class="empty-state">
                                 <div class="spinner" style={{ width: '36px', height: '36px', borderColor: '#e2e8f0', borderTopColor: '#4f46e5', borderWidth: '3px' }} />
                                 <p style={{ marginTop: '1rem', fontSize: '0.95rem' }}>Loading cases...</p>
                             </div>
-                        ) : error.value ? (
+                        ) : this.error ? (
                             <div class="empty-state">
                                 <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⚠️</div>
-                                <p style={{ color: '#dc2626', fontWeight: '600' }}>{error.value}</p>
-                                <button onClick={fetchCases} style={{ marginTop: '1rem', padding: '0.5rem 1.25rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Retry</button>
+                                <p style={{ color: '#dc2626', fontWeight: '600' }}>{this.error}</p>
+                                <button onClick={this.fetchCases} style={{ marginTop: '1rem', padding: '0.5rem 1.25rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Retry</button>
                             </div>
-                        ) : filteredCases.value.length === 0 ? (
+                        ) : this.filteredCases.length === 0 ? (
                             <div class="empty-state">
                                 <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🗂️</div>
                                 <p style={{ fontSize: '1rem', fontWeight: '700', color: '#475569' }}>No cases found</p>
-                                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>No {activeFilter.value} cases in your jurisdiction</p>
+                                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>No {this.activeFilter} cases in your jurisdiction</p>
                             </div>
                         ) : (
-                            filteredCases.value.map(c => {
-                                const priority = getPriority(c);
-                                const statusCfg = getStatus(c.status);
-                                const isSelected = selectedCase.value?._id === c._id;
-                                const catLabel = getCategoryLabel(c);
+                            this.filteredCases.map(c => {
+                                const priority = this.getPriority(c);
+                                const statusCfg = this.getStatus(c.status);
+                                const isSelected = this.selectedCase?._id === c._id;
+                                const catLabel = this.getCategoryLabel(c);
                                 const loc = c.metadata?.location || 'Location not specified';
 
                                 return (
                                     <div
                                         key={c._id}
                                         class={['case-row', isSelected ? 'selected' : ''].join(' ')}
-                                        onClick={() => selectCase(c)}
+                                        onClick={() => this.selectCase(c)}
                                     >
                                         {/* Priority strip */}
                                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: priority.dot, borderRadius: '4px 0 0 4px' }} />
@@ -791,7 +821,7 @@ export default {
                                             <div style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                 <span>📍 {loc.length > 35 ? loc.substring(0, 35) + '…' : loc}</span>
                                                 <span>·</span>
-                                                <span>🕐 {formatShortDate(c.createdAt)}</span>
+                                                <span>🕐 {this.formatShortDate(c.createdAt)}</span>
                                             </div>
                                         </div>
 
@@ -804,7 +834,7 @@ export default {
                 </div>
 
                 {/* ── RIGHT PANEL: Case Detail + Update Form ──────────────── */}
-                {selectedCase.value && (
+                {this.selectedCase && (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: '#f8fafc', position: 'relative' }}>
 
                         {/* Detail Header */}
@@ -819,7 +849,7 @@ export default {
                             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
                         }}>
                             <button
-                                onClick={() => { selectedCase.value = null; updateError.value = ''; updateSuccess.value = ''; }}
+                                onClick={() => { this.selectedCase = null; this.updateError = ''; this.updateSuccess = ''; }}
                                 style={{
                                     width: '32px',
                                     height: '32px',
@@ -842,30 +872,30 @@ export default {
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                     <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#111827', letterSpacing: '-0.02em' }}>
-                                        {getCategoryLabel(selectedCase.value)}
+                                        {this.getCategoryLabel(this.selectedCase)}
                                     </h3>
                                     <span style={{ fontSize: '0.85rem', background: '#f8fafc', color: '#64748b', padding: '4px 10px', borderRadius: '8px', fontWeight: '700', border: '1px solid #e2e8f0' }}>
-                                        ID: {selectedCase.value._id.slice(-8).toUpperCase()}
+                                        ID: {this.selectedCase._id.slice(-8).toUpperCase()}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                                     {(() => {
-                                        const sc = getStatus(selectedCase.value.status);
+                                        const sc = this.getStatus(this.selectedCase.status);
                                         return (
                                             <span class="status-badge" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.color}30`, padding: '4px 12px', fontSize: '11px' }}>
-                                                {sc.icon} {selectedCase.value.status}
+                                                {sc.icon} {this.selectedCase.status}
                                             </span>
                                         );
                                     })()}
                                     {(() => {
-                                        const pc = getPriority(selectedCase.value);
+                                        const pc = this.getPriority(this.selectedCase);
                                         return (
                                             <span class="status-badge" style={{ background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, padding: '4px 12px', fontSize: '11px' }}>
                                                 <span class="priority-dot" style={{ background: pc.dot }} /> {pc.label} Priority
                                             </span>
                                         );
                                     })()}
-                                    {isTerminal.value && (
+                                    {this.isTerminal && (
                                         <span class="status-badge" style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', padding: '4px 12px', fontSize: '11px' }}>
                                             🔒 Case Archive
                                         </span>
@@ -877,7 +907,7 @@ export default {
                         {/* Detail Body */}
                         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem' }}>
 
-                            {caseLoading.value ? (
+                            {this.caseLoading ? (
                                 <div class="empty-state">
                                     <div class="spinner" style={{ width: '30px', height: '30px', borderColor: '#e2e8f0', borderTopColor: '#4f46e5', borderWidth: '3px' }} />
                                     <p style={{ marginTop: '0.75rem' }}>Loading details...</p>
@@ -891,25 +921,25 @@ export default {
 
                                             <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.75rem' }}>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>Type</div>
-                                                <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{getCategoryLabel(selectedCase.value)}</div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{this.getCategoryLabel(this.selectedCase)}</div>
                                             </div>
 
                                             <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.75rem' }}>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>Reported / Incident Time</div>
                                                 <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>
-                                                    {formatShortDate(selectedCase.value.createdAt)}
-                                                    {selectedCase.value.metadata?.dateTime && (
-                                                        <span style={{ color: '#6366f1', marginLeft: '6px' }}>(Inc: {formatShortDate(selectedCase.value.metadata.dateTime)})</span>
+                                                    {this.formatShortDate(this.selectedCase.createdAt)}
+                                                    {this.selectedCase.metadata?.dateTime && (
+                                                        <span style={{ color: '#6366f1', marginLeft: '6px' }}>(Inc: {this.formatShortDate(this.selectedCase.metadata.dateTime)})</span>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.75rem', gridColumn: '1/-1' }}>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>📍 Location</div>
-                                                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>{selectedCase.value.metadata?.location || 'Not specified'}</div>
-                                                {selectedCase.value.metadata?.latitude && (
+                                                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>{this.selectedCase.metadata?.location || 'Not specified'}</div>
+                                                {this.selectedCase.metadata?.latitude && (
                                                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-                                                        GPS: {selectedCase.value.metadata.latitude.toFixed(5)}, {selectedCase.value.metadata.longitude?.toFixed(5)}
+                                                        GPS: {this.selectedCase.metadata.latitude.toFixed(5)}, {this.selectedCase.metadata.longitude?.toFixed(5)}
                                                     </div>
                                                 )}
                                             </div>
@@ -919,13 +949,13 @@ export default {
                                         <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.875rem', marginTop: '0.75rem' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>Citizen Report</div>
                                             <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155', lineHeight: '1.6', fontWeight: '500' }}>
-                                                {selectedCase.value.message || 'No description provided.'}
+                                                {this.selectedCase.message || 'No description provided.'}
                                             </p>
                                         </div>
 
                                         {/* Metadata fields */}
                                         {(() => {
-                                            const cat = getCaseCategory(selectedCase.value);
+                                            const cat = this.getCaseCategory(this.selectedCase);
                                             const allowedExt = {
                                                 'robbery': ['incidentTitle', 'robberyWeaponUsed', 'robberyInjury', 'robberySuspectCount'],
                                                 'unidentified_emergency': ['emergencyType'],
@@ -936,7 +966,7 @@ export default {
                                                 'camera_issue': ['issueType', 'sinceWhen']
                                             };
                                             const validKeys = allowedExt[cat] || [];
-                                            const entries = Object.entries(selectedCase.value.metadata || {})
+                                            const entries = Object.entries(this.selectedCase.metadata || {})
                                                 .filter(([k, v]) => validKeys.includes(k) && v !== null && String(v).trim() !== '');
 
                                             if (entries.length === 0) return null;
@@ -959,8 +989,42 @@ export default {
                                         })()}
                                     </div>
 
+                                    {/* ── Evidence / Media Section ─────────── */}
+                                    {this.selectedCase.mediaUrls?.length > 0 && (
+                                        <div class="detail-card" style={{ border: '1px solid #e0e7ff', background: 'linear-gradient(to bottom, #ffffff, #f0f4ff)' }}>
+                                            <div class="section-title">📂 Evidence / Media</div>
+                                            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '4px 0 12px', scrollSnapType: 'x mandatory' }}>
+                                                {this.selectedCase.mediaUrls.map((url, i) => (
+                                                    <div 
+                                                        key={i} 
+                                                        onClick={() => this.openImagePreview(url)}
+                                                        style={{ 
+                                                            width: '160px', 
+                                                            height: '110px', 
+                                                            flexShrink: 0, 
+                                                            borderRadius: '14px', 
+                                                            overflow: 'hidden', 
+                                                            border: '2px solid white',
+                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                                            cursor: 'zoom-in',
+                                                            transition: 'transform 0.2s',
+                                                            scrollSnapAlign: 'start'
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+                                                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                                    >
+                                                        <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: '800', textAlign: 'center', opacity: 0.8 }}>
+                                                Click image to enlarge
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* ── Status Update Form ───────────────── */}
-                                    {!isTerminal.value ? (
+                                    {!this.isTerminal ? (
                                         <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)', borderRadius: '18px', padding: '1.5rem', marginBottom: '1rem', boxShadow: '0 8px 30px rgba(30,27,75,0.25)' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
                                                 <div style={{ width: '38px', height: '38px', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🔄</div>
@@ -975,11 +1039,11 @@ export default {
                                                 <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.6rem' }}>Allowed Next Actions</div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                     <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '8px' }}>
-                                                        Current: {selectedCase.value.status}
+                                                        Current: {this.selectedCase.status}
                                                     </span>
                                                     <span style={{ color: '#a5b4fc', fontSize: '1rem' }}>→</span>
-                                                    {allowedNextStatuses.value.map(s => {
-                                                        const sc = getStatus(s);
+                                                    {this.allowedNextStatuses.map(s => {
+                                                        const sc = this.getStatus(s);
                                                         return (
                                                             <span key={s} style={{ fontSize: '0.8rem', fontWeight: '700', color: sc.color, background: sc.bg, padding: '4px 10px', borderRadius: '8px', border: `1px solid ${sc.color}40` }}>
                                                                 {sc.icon} {s}
@@ -995,15 +1059,15 @@ export default {
                                                     Step 1 — Select New Status <span style={{ color: '#f87171' }}>*</span>
                                                 </label>
 
-                                                {allowedNextStatuses.value.length <= 3 ? (
+                                                {this.allowedNextStatuses.length <= 3 ? (
                                                     <div class="toggle-container">
-                                                        {allowedNextStatuses.value.map(s => {
-                                                            const sc = getStatus(s);
+                                                        {this.allowedNextStatuses.map(s => {
+                                                            const sc = this.getStatus(s);
                                                             return (
                                                                 <div
                                                                     key={s}
-                                                                    class={['toggle-item', updateForm.value.status === s ? 'active' : '', updateLoading.value ? 'disabled' : ''].join(' ')}
-                                                                    onClick={() => { if (!updateLoading.value) updateForm.value = { ...updateForm.value, status: s }; }}
+                                                                    class={['toggle-item', this.updateForm.status === s ? 'active' : '', this.updateLoading ? 'disabled' : ''].join(' ')}
+                                                                    onClick={() => { if (!this.updateLoading) this.updateForm = { ...this.updateForm, status: s }; }}
                                                                 >
                                                                     {sc.icon} {s}
                                                                 </div>
@@ -1011,26 +1075,26 @@ export default {
                                                         })}
                                                     </div>
                                                 ) : (
-                                                    <div class={['custom-dropdown', openDropdown.value === 'status' ? 'open' : ''].join(' ')}>
+                                                    <div class={['custom-dropdown', this.openDropdown === 'status' ? 'open' : ''].join(' ')}>
                                                         <button
                                                             type="button"
-                                                            class={['dropdown-trigger', updateLoading.value ? 'disabled' : ''].join(' ')}
-                                                            onClick={(e) => toggleDropdown('status', e)}
+                                                            class={['dropdown-trigger', this.updateLoading ? 'disabled' : ''].join(' ')}
+                                                            onClick={(e) => this.toggleDropdown('status', e)}
                                                         >
-                                                            <span>{updateForm.value.status ? getStatus(updateForm.value.status).icon + ' ' + updateForm.value.status : '— Choose status —'}</span>
-                                                            <span style={{ fontSize: '10px', opacity: 0.5 }}>{openDropdown.value === 'status' ? '▲' : '▼'}</span>
+                                                            <span>{this.updateForm.status ? this.getStatus(this.updateForm.status).icon + ' ' + this.updateForm.status : '— Choose status —'}</span>
+                                                            <span style={{ fontSize: '10px', opacity: 0.5 }}>{this.openDropdown === 'status' ? '▲' : '▼'}</span>
                                                         </button>
-                                                        {openDropdown.value === 'status' && (
+                                                        {this.openDropdown === 'status' && (
                                                             <div class="dropdown-menu">
-                                                                {allowedNextStatuses.value.map(s => {
-                                                                    const sc = getStatus(s);
+                                                                {this.allowedNextStatuses.map(s => {
+                                                                    const sc = this.getStatus(s);
                                                                     return (
                                                                         <div
                                                                             key={s}
-                                                                            class={['dropdown-item', updateForm.value.status === s ? 'selected' : ''].join(' ')}
+                                                                            class={['dropdown-item', this.updateForm.status === s ? 'selected' : ''].join(' ')}
                                                                             onClick={() => {
-                                                                                updateForm.value = { ...updateForm.value, status: s };
-                                                                                openDropdown.value = null;
+                                                                                this.updateForm = { ...this.updateForm, status: s };
+                                                                                this.openDropdown = null;
                                                                             }}
                                                                         >
                                                                             {sc.icon} {s}
@@ -1050,46 +1114,46 @@ export default {
                                                     Step 2 — Operational Basis <span style={{ color: '#f87171' }}>*</span>
                                                 </label>
                                                 <div style={{ fontSize: '0.7rem', color: '#818cf8', marginBottom: '0.4rem', fontStyle: 'italic' }}>
-                                                    {getCategoryLabel(selectedCase.value)} Basis Selection
+                                                    {this.getCategoryLabel(this.selectedCase)} Basis Selection
                                                 </div>
 
-                                                {availableBasisTypes.value.length <= 3 && availableBasisTypes.value.length > 0 ? (
+                                                {this.availableBasisTypes.length <= 3 && this.availableBasisTypes.length > 0 ? (
                                                     <div class="toggle-container">
-                                                        {availableBasisTypes.value.map(b => (
+                                                        {this.availableBasisTypes.map(b => (
                                                             <div
                                                                 key={b}
-                                                                class={['toggle-item', updateForm.value.basisType === b ? 'active' : '', (!updateForm.value.status || updateLoading.value) ? 'disabled' : ''].join(' ')}
-                                                                onClick={() => { if (updateForm.value.status && !updateLoading.value) updateForm.value = { ...updateForm.value, basisType: b }; }}
+                                                                class={['toggle-item', this.updateForm.basisType === b ? 'active' : '', (!this.updateForm.status || this.updateLoading) ? 'disabled' : ''].join(' ')}
+                                                                onClick={() => { if (this.updateForm.status && !this.updateLoading) this.updateForm = { ...this.updateForm, basisType: b }; }}
                                                             >
                                                                 {b}
                                                             </div>
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div class={['custom-dropdown', openDropdown.value === 'basis' ? 'open' : ''].join(' ')} style={{ zIndex: openDropdown.value === 'basis' ? 3000 : 100 }}>
+                                                    <div class={['custom-dropdown', this.openDropdown === 'basis' ? 'open' : ''].join(' ')} style={{ zIndex: this.openDropdown === 'basis' ? 3000 : 100 }}>
                                                         <button
                                                             type="button"
-                                                            disabled={!updateForm.value.status || updateLoading.value}
-                                                            class={['dropdown-trigger', (!updateForm.value.status || updateLoading.value) ? 'disabled' : ''].join(' ')}
+                                                            disabled={!this.updateForm.status || this.updateLoading}
+                                                            class={['dropdown-trigger', (!this.updateForm.status || this.updateLoading) ? 'disabled' : ''].join(' ')}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                toggleDropdown('basis', e);
+                                                                this.toggleDropdown('basis', e);
                                                             }}
                                                         >
                                                             <span style={{ pointerEvents: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                {updateForm.value.basisType || (updateForm.value.status ? '— Select basis type —' : 'Select status first')}
+                                                                {this.updateForm.basisType || (this.updateForm.status ? '— Select basis type —' : 'Select status first')}
                                                             </span>
-                                                            <span style={{ pointerEvents: 'none', fontSize: '10px', opacity: 0.5, marginLeft: '8px' }}>{openDropdown.value === 'basis' ? '▲' : '▼'}</span>
+                                                            <span style={{ pointerEvents: 'none', fontSize: '10px', opacity: 0.5, marginLeft: '8px' }}>{this.openDropdown === 'basis' ? '▲' : '▼'}</span>
                                                         </button>
-                                                        {openDropdown.value === 'basis' && (
+                                                        {this.openDropdown === 'basis' && (
                                                             <div class="dropdown-menu" style={{ display: 'block', maxHeight: '250px' }}>
-                                                                {availableBasisTypes.value.length > 0 ? availableBasisTypes.value.map(b => (
+                                                                {this.availableBasisTypes.length > 0 ? this.availableBasisTypes.map(b => (
                                                                     <div
                                                                         key={b}
-                                                                        class={['dropdown-item', updateForm.value.basisType === b ? 'selected' : ''].join(' ')}
+                                                                        class={['dropdown-item', this.updateForm.basisType === b ? 'selected' : ''].join(' ')}
                                                                         onClick={() => {
-                                                                            updateForm.value = { ...updateForm.value, basisType: b };
-                                                                            openDropdown.value = null;
+                                                                            this.updateForm = { ...this.updateForm, basisType: b };
+                                                                            this.openDropdown = null;
                                                                         }}
                                                                     >
                                                                         {b}
@@ -1114,46 +1178,46 @@ export default {
                                                 <textarea
                                                     class="form-textarea"
                                                     rows="4"
-                                                    value={updateForm.value.description}
-                                                    onInput={e => updateForm.value = { ...updateForm.value, description: e.target.value }}
+                                                    value={this.updateForm.description}
+                                                    onInput={e => this.updateForm = { ...this.updateForm, description: e.target.value }}
                                                     placeholder="Document your official action, observations, and findings in detail. Be precise and professional. Minimum 20 characters required."
-                                                    disabled={!updateForm.value.basisType || updateLoading.value}
+                                                    disabled={!this.updateForm.basisType || this.updateLoading}
                                                     style={{ resize: 'vertical', minHeight: '90px' }}
                                                 />
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem' }}>
-                                                    <span style={{ fontSize: '0.72rem', color: descriptionValid.value ? '#6ee7b7' : '#f87171', fontWeight: '600' }}>
-                                                        {descriptionValid.value ? '✓ Sufficient detail' : `${20 - descCharCount.value} more chars needed`}
+                                                    <span style={{ fontSize: '0.72rem', color: this.descriptionValid ? '#6ee7b7' : '#f87171', fontWeight: '600' }}>
+                                                        {this.descriptionValid ? '✓ Sufficient detail' : `${20 - this.descCharCount} more chars needed`}
                                                     </span>
-                                                    <span style={{ fontSize: '0.72rem', color: '#818cf8' }}>{descCharCount.value} characters</span>
+                                                    <span style={{ fontSize: '0.72rem', color: '#818cf8' }}>{this.descCharCount} characters</span>
                                                 </div>
                                             </div>
 
                                             {/* Error / Success */}
-                                            {updateError.value && (
+                                            {this.updateError && (
                                                 <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#fca5a5', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                                                    <span>⚠️</span> <span>{updateError.value}</span>
+                                                    <span>⚠️</span> <span>{this.updateError}</span>
                                                 </div>
                                             )}
-                                            {updateSuccess.value && (
+                                            {this.updateSuccess && (
                                                 <div style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#86efac', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span>✅</span> <span>{updateSuccess.value}</span>
+                                                    <span>✅</span> <span>{this.updateSuccess}</span>
                                                 </div>
                                             )}
 
                                             {/* Submit */}
                                             <button
                                                 class="submit-btn"
-                                                onClick={submitUpdate}
-                                                disabled={!formValid.value || updateLoading.value}
+                                                onClick={this.submitUpdate}
+                                                disabled={!this.formValid || this.updateLoading}
                                                 style={{
-                                                    background: formValid.value
+                                                    background: this.formValid
                                                         ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
                                                         : 'rgba(255,255,255,0.1)',
-                                                    color: formValid.value ? 'white' : 'rgba(255,255,255,0.4)',
+                                                    color: this.formValid ? 'white' : 'rgba(255,255,255,0.4)',
                                                     border: 'none'
                                                 }}
                                             >
-                                                {updateLoading.value ? (
+                                                {this.updateLoading ? (
                                                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.625rem' }}>
                                                         <span class="spinner" /> Submitting Official Update...
                                                     </span>
@@ -1168,10 +1232,10 @@ export default {
                                     ) : (
                                         <div style={{ background: 'white', borderRadius: '16px', padding: '1.25rem', marginBottom: '1rem', textAlign: 'center', border: '2px dashed #e2e8f0' }}>
                                             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-                                                {selectedCase.value.status === 'Resolved' ? '🏁' : '❌'}
+                                                {this.selectedCase.status === 'Resolved' ? '🏁' : '❌'}
                                             </div>
                                             <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1rem', marginBottom: '0.25rem' }}>
-                                                Case {selectedCase.value.status}
+                                                Case {this.selectedCase.status}
                                             </div>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                                 This case has been closed. No further status updates are permitted.
@@ -1179,21 +1243,70 @@ export default {
                                         </div>
                                     )}
 
+                                    {/* ── Image Preview Modal ───────────────── */}
+                                    {this.showImagePreview && (
+                                        <div 
+                                            onClick={this.closeImagePreview}
+                                            style={{ 
+                                                position: 'fixed', 
+                                                top: 0, left: 0, right: 0, bottom: 0, 
+                                                background: 'rgba(15, 23, 42, 0.95)', 
+                                                zIndex: 9999, 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                padding: '20px',
+                                                backdropFilter: 'blur(10px)',
+                                                animation: 'fadeIn 0.3s ease'
+                                            }}
+                                        >
+                                            <button 
+                                                onClick={this.closeImagePreview}
+                                                style={{ 
+                                                    position: 'absolute', 
+                                                    top: '20px', 
+                                                    right: '25px', 
+                                                    background: 'white', 
+                                                    border: 'none', 
+                                                    width: '40px', height: '40px', 
+                                                    borderRadius: '50%', 
+                                                    fontSize: '24px', 
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
+                                            >✕</button>
+                                            <img 
+                                                src={this.previewImageUrl} 
+                                                style={{ 
+                                                    maxWidth: '100%', 
+                                                    maxHeight: '90vh', 
+                                                    borderRadius: '12px', 
+                                                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                                                    objectFit: 'contain'
+                                                }} 
+                                                onClick={e => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    )}
+
                                     {/* ── Timeline ─────────────────────────── */}
                                     <div class="detail-card">
                                         <div class="section-title">🕐 Case Timeline</div>
 
-                                        {(!selectedCase.value.timeline || selectedCase.value.timeline.length === 0) ? (
+                                        {(!this.selectedCase.timeline || this.selectedCase.timeline.length === 0) ? (
                                             <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.9rem' }}>No timeline entries yet</div>
                                         ) : (
                                             <div style={{ position: 'relative' }}>
-                                                {[...selectedCase.value.timeline].reverse().map((entry, idx) => {
-                                                    const sc = getStatus(entry.status);
+                                                {[...this.selectedCase.timeline].reverse().map((entry, idx) => {
+                                                    const sc = this.getStatus(entry.status);
                                                     const isFirst = idx === 0;
                                                     return (
-                                                        <div key={idx} class="timeline-item" style={{ position: 'relative', paddingLeft: '2rem', paddingBottom: idx < selectedCase.value.timeline.length - 1 ? '1.5rem' : '0' }}>
+                                                        <div key={idx} class="timeline-item" style={{ position: 'relative', paddingLeft: '2rem', paddingBottom: idx < this.selectedCase.timeline.length - 1 ? '1.5rem' : '0' }}>
                                                             {/* Line */}
-                                                            {idx < selectedCase.value.timeline.length - 1 && (
+                                                            {idx < this.selectedCase.timeline.length - 1 && (
                                                                 <div class="timeline-line" />
                                                             )}
                                                             {/* Icon */}
@@ -1220,7 +1333,7 @@ export default {
                                                             <div style={{ background: isFirst ? `${sc.bg}80` : '#f8fafc', borderRadius: '12px', padding: '0.875rem', border: `1px solid ${isFirst ? sc.color + '30' : '#f1f5f9'}` }}>
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                                                     <span style={{ fontWeight: '800', color: sc.color, fontSize: '0.875rem' }}>{entry.status}</span>
-                                                                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '600' }}>{formatDate(entry.timestamp)}</span>
+                                                                     <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '600' }}>{this.formatDate(entry.timestamp)}</span>
                                                                 </div>
 
                                                                 {entry.basisType && (

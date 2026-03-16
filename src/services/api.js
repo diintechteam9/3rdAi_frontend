@@ -711,6 +711,30 @@ class ApiService {
       method: 'GET'
     });
   }
+  
+  // Search Location using Google Places Autocomplete (via Backend)
+  async searchLocation(query) {
+    return this.request('/mobile/user/search-location', {
+      method: 'GET',
+      params: { q: query }
+    });
+  }
+
+  // Get coordinates for a place (via Backend)
+  async getPlaceDetails(placeId) {
+    return this.request('/mobile/user/place-details', {
+      method: 'GET',
+      params: { placeId }
+    });
+  }
+
+  // Reverse Geocode (via Backend)
+  async reverseGeocode(lat, lon) {
+    return this.request('/mobile/user/reverse-geocode', {
+      method: 'GET',
+      params: { lat, lon }
+    });
+  }
 
   // Partner — Get all cases with optional filters
   async getPartnerCases(params = {}) {
@@ -1217,6 +1241,9 @@ const api = {
   getPartnerBasisTypes: apiService.getPartnerBasisTypes.bind(apiService),
   getR2UploadUrl: apiService.getR2UploadUrl.bind(apiService),
   uploadFileToR2: apiService.uploadFileToR2.bind(apiService),
+  searchLocation: apiService.searchLocation.bind(apiService),
+  getPlaceDetails: apiService.getPlaceDetails.bind(apiService),
+  reverseGeocode: apiService.reverseGeocode.bind(apiService),
   request: apiService.request.bind(apiService),
 
 };

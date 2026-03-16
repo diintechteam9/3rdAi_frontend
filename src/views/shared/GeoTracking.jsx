@@ -116,7 +116,7 @@ export default defineComponent({
             heatmap: null
         });
 
-        const toggles = ref({
+        const mapToggles = ref({
             boundaries: true,
             cameras: true,
             cases: true,
@@ -269,7 +269,7 @@ export default defineComponent({
                         }
                     });
 
-                    if (toggles.value.boundaries && isReady()) {
+                    if (mapToggles.value.boundaries && isReady()) {
                         layers.value.boundaries.addLayer(geoLayer);
                         // fitToLayer MUST be after addLayer so getBounds() works correctly
                         // This auto-zooms the map to exactly the partner's area boundary
@@ -288,9 +288,10 @@ export default defineComponent({
         // ── Fetch & render cameras (Bangalore only) ───────────────────────────
         const fetchCameras = async () => {
             try {
-                // Cameras only exist for Bangalore
+                // Fetch cameras based on client's city (fallback to Bangalore if not set)
+                const targetCity = auth.city || 'Bangalore';
                 const { data } = await axios.get(`${API_BASE_URL}/cameras`, {
-                    params: { city: 'Bangalore' }
+                    params: { city: targetCity }
                 });
                 if (!isReady()) return;
 
@@ -360,7 +361,28 @@ export default defineComponent({
                     </div>
                 `;
 
-                const marker = L.marker(latlng).bindPopup(popupContent);
+                const status = p.status || 'online';
+                const color = status === 'online' ? '#22c55e' : '#6b7280';
+
+                const icon = L.divIcon({
+                    html: `
+                        <div title="${p.cameraName || 'Camera'}" style="
+                            width:22px; height:22px; border-radius:50%;
+                            background:${color}; border:3px solid white;
+                            box-shadow: 0 0 0 2px ${color}, 0 2px 8px rgba(0,0,0,0.4);
+                            display:flex; align-items:center; justify-content:center;
+                            cursor:pointer;
+                        ">
+                            <span style="font-size:10px;">📷</span>
+                        </div>
+                    `,
+                    className: '',
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11],
+                    popupAnchor: [0, -11]
+                });
+
+                const marker = L.marker(latlng, { icon }).bindPopup(popupContent);
                 const circle = L.circle(latlng, {
                     radius,
                     color: statusColor,
@@ -419,7 +441,7 @@ export default defineComponent({
                 layers.value.heatmap = null;
             }
 
-            if (toggles.value.heatmap && casesCoords.value.length > 0) {
+            if (mapToggles.value.heatmap && casesCoords.value.length > 0) {
                 layers.value.heatmap = L.heatLayer(casesCoords.value, {
                     radius: 30,
                     blur: 20,
@@ -470,7 +492,7 @@ export default defineComponent({
                 });
 
 
-                if (!toggles.value.cases && isReady()) {
+                if (!mapToggles.value.cases && isReady()) {
                     layers.value.cases.clearLayers();
                 }
                 updateHeatmap();
@@ -493,14 +515,14 @@ export default defineComponent({
         const handleToggle = async (layerName) => {
             if (!isReady()) return;
 
-            toggles.value[layerName] = !toggles.value[layerName];
+            mapToggles.value[layerName] = !mapToggles.value[layerName];
 
             if (layerName === 'heatmap') { updateHeatmap(); return; }
 
             const l = layers.value[layerName];
             if (!l) return;
 
-            if (toggles.value[layerName]) {
+            if (mapToggles.value[layerName]) {
                 map.value.addLayer(l);
 
                 // ── OPTIMIZATION: Only fetch if the layer group is empty ──
@@ -557,7 +579,7 @@ export default defineComponent({
                 if (!isReady()) return;
                 console.log('[GeoTracking] 🆕 New case live:', caseGeoJSON?.properties?.title);
                 renderCase(caseGeoJSON, true);
-                if (toggles.value.heatmap) updateHeatmap();
+                if (mapToggles.value.heatmap) updateHeatmap();
                 statsRef.value.total++;
                 statsRef.value.pending++;
             });
@@ -908,9 +930,9 @@ export default defineComponent({
                                     <span style="font-size: 13px; font-weight: 600; color: #cbd5e1;">{label}</span>
                                     <div
                                         onClick={() => handleToggle(key)}
-                                        style={`width: 32px; height: 16px; border-radius: 20px; cursor: pointer; position: relative; transition: all 0.3s; ${toggles.value[key] ? `background: ${color};` : 'background: #334155;'}`}
+                                        style={`width: 32px; height: 16px; border-radius: 20px; cursor: pointer; position: relative; transition: all 0.3s; ${mapToggles.value[key] ? `background: ${color};` : 'background: #334155;'}`}
                                     >
-                                        <div style={`width: 10px; height: 10px; background: white; border-radius: 50%; position: absolute; top: 3px; transition: all 0.3s; ${toggles.value[key] ? 'left: 19px;' : 'left: 3px;'}`} />
+                                        <div style={`width: 10px; height: 10px; background: white; border-radius: 50%; position: absolute; top: 3px; transition: all 0.3s; ${mapToggles.value[key] ? 'left: 19px;' : 'left: 3px;'}`} />
                                     </div>
                                 </div>
                             ))}

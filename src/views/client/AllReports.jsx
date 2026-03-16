@@ -126,46 +126,53 @@ export default {
             <p style={{ color: '#64748b', margin: 0 }}>There are no citizen complaints reported to your portal at this moment.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {reports.value.map(report => {
               const cfg = priorityConfig[report.priority] || priorityConfig.medium;
               const meta = report.metadata || {};
               const typeName = getCaseName(meta.type);
+              const partnerInfo = report.assignedPartnerId;
 
               return (
-                <div key={report._id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '600', color: cfg.color, background: cfg.bg, padding: '4px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cfg.label}</span>
-                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#475569', background: '#f1f5f9', padding: '4px 10px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{typeName}</span>
+                <div key={report._id} style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{cfg.label}</span>
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#475569', background: '#f1f5f9', padding: '3px 8px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{typeName}</span>
                     </div>
-                    {meta.isAnonymous && <span style={{ fontSize: '18px' }} title="Anonymous Report">🕵️‍♂️</span>}
+                    {meta.isAnonymous && <span style={{ fontSize: '16px' }} title="Anonymous Report">🕵️‍♂️</span>}
                   </div>
 
-                  <h3 style={{ margin: '0 0 8px', fontSize: '17px', color: '#0f172a', fontWeight: '600', lineHeight: '1.4' }}>{report.title}</h3>
+                  <h3 style={{ margin: '0 0 6px', fontSize: '15px', color: '#0f172a', fontWeight: '600', lineHeight: '1.4' }}>{report.title}</h3>
 
-                  <p style={{ color: '#475569', fontSize: '14px', margin: '0 0 16px', lineHeight: '1.5', flex: 1 }}>
-                    {report.message.length > 100 ? report.message.substring(0, 100) + '...' : report.message}
+                  <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 12px', lineHeight: '1.5', flex: 1 }}>
+                    {report.message.length > 80 ? report.message.substring(0, 80) + '...' : report.message}
                   </p>
 
-                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9', fontSize: '13px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>📍</span>
+                  <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #f1f5f9', fontSize: '12px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>📍</span>
                       <span style={{ color: '#334155', lineHeight: '1.4', wordBreak: 'break-word' }}>{meta.location || 'Location not provided'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>🕒</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🕒</span>
                       <span style={{ color: '#64748b' }}>{meta.dateTime ? new Date(meta.dateTime).toLocaleString() : new Date(report.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderTop: '1px solid #edf2f7', paddingTop: '6px', marginTop: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>👮</span>
+                      <span style={{ color: partnerInfo ? '#4f46e5' : '#94a3b8', fontWeight: partnerInfo ? '600' : 'normal' }}>
+                        {partnerInfo ? `Partner: ${partnerInfo.name}` : 'Unassigned'}
+                      </span>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
                       <select
                         value={report.status}
                         onChange={(e) => handleStatusUpdate(report._id, e.target.value)}
                         disabled={updatingId.value === report._id}
-                        style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
+                        style={{ padding: '3px 6px', borderRadius: '4px', fontSize: '11px', border: '1px solid #e2e8f0', outline: 'none', background: '#fff' }}
                       >
                         {['Reported', 'Under Review', 'Verified', 'Action Taken', 'Resolved', 'Rejected'].map(s => (
                           <option key={s} value={s}>{s}</option>
@@ -173,12 +180,12 @@ export default {
                       </select>
                       <button
                         onClick={() => handleDelete(report._id)}
-                        style={{ background: 'white', border: '1px solid #fee2e2', color: '#ef4444', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+                        style={{ background: 'white', border: '1px solid #fee2e2', color: '#ef4444', borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', fontSize: '11px' }}
                       >
                         🗑️
                       </button>
                     </div>
-                    <button onClick={() => selectedReport.value = report} style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '14px', fontWeight: '600', cursor: 'pointer', padding: 0, transition: 'color 0.2s' }}>Details →</button>
+                    <button onClick={() => selectedReport.value = report} style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: 0 }}>Details →</button>
                   </div>
                 </div>
               );

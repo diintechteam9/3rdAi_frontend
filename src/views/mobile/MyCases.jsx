@@ -126,8 +126,8 @@ export default {
                         background: #f8fafc;
                         border-bottom: 1px solid #e2e8f0;
                         position: sticky;
-                        top: 60px;
-                        z-index: 15;
+                        top: 128px;
+                        z-index: 95;
                         justify-content: flex-start;
                     }
                     .summary-box {
@@ -176,8 +176,8 @@ export default {
                         background: #f8fafc;
                         scrollbar-width: none;
                         position: sticky;
-                        top: 120px;
-                        z-index: 14;
+                        top: 194px;
+                        z-index: 94;
                         border-bottom: 1px solid #e2e8f0;
                     }
                     .sub-tabs-container::-webkit-scrollbar { display: none; }

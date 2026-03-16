@@ -104,12 +104,73 @@ export default {
             currentStep.value = 1; // Jump to description
         };
 
+        const searchSuggestions = ref([]);
+        const isSearching = ref(false);
+        let searchTimeout = null;
+
+        const handleLocationInput = (e) => {
+            const val = e.target.value;
+            formData.value.location = val;
+
+            if (searchTimeout) clearTimeout(searchTimeout);
+            
+            if (!val || val.length < 3) {
+                searchSuggestions.value = [];
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                isSearching.value = true;
+                try {
+                    const res = await api.searchLocation(val);
+                    if (res?.success) {
+                        searchSuggestions.value = res.data || [];
+                    }
+                } catch (err) {
+                    console.error('Location search failed:', err);
+                } finally {
+                    isSearching.value = false;
+                }
+            }, 300);
+        };
+
+        const handleSelectSuggestion = async (loc) => {
+            formData.value.location = loc.displayName;
+            searchSuggestions.value = [];
+            
+            // Fetch exact coordinates using placeId
+            if (loc.placeId) {
+                try {
+                    const res = await api.getPlaceDetails(loc.placeId);
+                    if (res?.success) {
+                        formData.value.latitude = res.data.lat;
+                        formData.value.longitude = res.data.lng;
+                    }
+                } catch (err) {
+                    console.error('Failed to get coordinates for place:', err);
+                }
+            }
+        };
+
         const getLocation = () => {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    formData.value.latitude = pos.coords.latitude;
-                    formData.value.longitude = pos.coords.longitude;
-                    formData.value.location = `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    formData.value.latitude = lat;
+                    formData.value.longitude = lon;
+                    
+                    // Try to get address via reverse geocoding
+                    try {
+                        const res = await api.reverseGeocode(lat, lon);
+                        if (res?.success && res.data?.location) {
+                            formData.value.location = res.data.location.formattedAddress;
+                        } else {
+                            formData.value.location = `GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                        }
+                    } catch (err) {
+                        formData.value.location = `GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                    }
                 });
             }
         };
@@ -469,7 +530,7 @@ export default {
                         <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '6px', display: 'block', letterSpacing: '0.05em' }}>Address / Landmark</label>
                         <div style={{ position: 'relative' }}>
                             <input
-                                onInput={e => formData.value.location = e.target.value}
+                                onInput={handleLocationInput}
                                 value={formData.value.location}
                                 placeholder="Where did it occur?"
                                 style={{ width: '100%', padding: '12px 42px 12px 16px', background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '14px', color: '#0f172a', fontSize: '13px', outline: 'none' }}
@@ -477,6 +538,51 @@ export default {
                             <button onClick={getLocation} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9', width: '28px', height: '28px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <MapPinIcon style={{ width: '14px' }} />
                             </button>
+
+                            {/* Suggestion List */}
+                            {searchSuggestions.value.length > 0 && (
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    top: '100%', 
+                                    left: 0, 
+                                    right: 0, 
+                                    background: 'white', 
+                                    borderRadius: '14px', 
+                                    marginTop: '8px', 
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)', 
+                                    zIndex: 100,
+                                    border: '1px solid #e2e8f0',
+                                    overflow: 'hidden'
+                                }}>
+                                    {searchSuggestions.value.map((loc, idx) => (
+                                        <div 
+                                            key={idx}
+                                            onClick={() => handleSelectSuggestion(loc)}
+                                            style={{ 
+                                                padding: '12px 16px', 
+                                                fontSize: '13px', 
+                                                borderBottom: idx === searchSuggestions.value.length - 1 ? 'none' : '1px solid #f1f5f9',
+                                                cursor: 'pointer',
+                                                color: '#1e293b',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px'
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                                        >
+                                            <MapPinIcon style={{ width: '14px', color: '#64748b' }} />
+                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loc.displayName}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {isSearching.value && (
+                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, padding: '12px', textAlign: 'center', background: 'white', borderRadius: '14px', marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                                    Searching...
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -640,7 +746,7 @@ export default {
         );
 
         return () => (
-            <div style={{ minHeight: '100vh', background: '#f8fafc', paddingTop: '10px', paddingBottom: '30px', fontFamily: "'Inter', sans-serif" }}>
+            <div style={{ minHeight: '100vh', background: '#f8fafc', paddingTop: '2.6rem', paddingBottom: '30px', fontFamily: "'Inter', sans-serif" }}>
                 <style>{`
                     .premium-continue-btn {
                         width: 100%;
@@ -706,7 +812,7 @@ export default {
                     alignItems: 'center', 
                     height: '64px',
                     position: 'sticky',
-                    top: '70px',
+                    top: '64px',
                     background: '#f8fafc',
                     zIndex: '90',
                     width: '100%',
@@ -760,7 +866,14 @@ export default {
                     )}
                 </div>
 
-                <div className="fade-in-section">
+                <div 
+                    className="fade-in-section" 
+                    style={{ 
+                        maxWidth: '600px', 
+                        margin: '0 auto',
+                        paddingBottom: '40px'
+                    }}
+                >
                     {currentStep.value === 0 && renderStep0()}
                     {currentStep.value === 1 && renderStep1()}
                     {currentStep.value === 2 && renderStep2()}
