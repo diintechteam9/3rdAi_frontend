@@ -369,91 +369,94 @@ export default {
                                 </h1>
                                 <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0' }}>Define how this case appears and what information is collected.</p>
                             </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gap: '32px' }}>
+                        </div>                        <div style={{ display: 'grid', gap: '24px' }}>
                             {/* STEP 1: IDENTITY */}
-                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>1</div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Basic Identity</h3>
+                            {/* ... (already updated) ... */}
+                            <div style={{ background: 'white', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '12px' }}>1</div>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Basic Identity</h3>
                                 </div>
                                 
-                                <div style={{ display: 'grid', gap: '24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Case Type Name *</label>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Case Type Name *</label>
                                         <input
                                             v-model={currentCT.value.name}
                                             placeholder="Example: Snatching, Accident..."
                                             onInput={e => currentCT.value.name = e.target.value}
-                                            style={{ width: '100%', padding: '14px 18px', borderRadius: '14px', border: '2px solid #f1f5f9', outline: 'none', fontSize: '16px', background: '#f8fafc' }}
+                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', background: 'white', transition: 'all 0.2s', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)' }}
+                                            onFocus={e => e.target.style.borderColor = '#6366f1'}
+                                            onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                                         />
                                     </div>
 
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Description / Purpose</label>
-                                        <textarea
-                                            v-model={currentCT.value.description}
-                                            onInput={e => currentCT.value.description = e.target.value}
-                                            placeholder="Short explanation for users..."
-                                            rows="2"
-                                            style={{ width: '100%', padding: '14px 18px', borderRadius: '14px', border: '2px solid #f1f5f9', outline: 'none', fontSize: '15px', background: '#f8fafc', resize: 'none' }}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Visibility Status</label>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visibility Status</label>
                                         <select
                                             value={currentCT.value.isActive}
                                             onChange={e => currentCT.value.isActive = e.target.value === 'true'}
-                                            style={{ width: '100%', padding: '14px 18px', borderRadius: '14px', border: '2px solid #f1f5f9', outline: 'none', background: '#f8fafc', fontWeight: '600' }}
+                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', background: 'white', fontWeight: '600', fontSize: '14px', transition: 'all 0.2s' }}
                                         >
-                                            <option value="true">Active (Visible on Mobile)</option>
+                                            <option value="true">Active (Visible)</option>
                                             <option value="false">Inactive (Hidden)</option>
                                         </select>
+                                    </div>
+
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description / Purpose</label>
+                                        <textarea
+                                            v-model={currentCT.value.description}
+                                            onInput={e => currentCT.value.description = e.target.value}
+                                            placeholder="Summarize what this case type is for..."
+                                            rows="2"
+                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', background: 'white', resize: 'none', transition: 'all 0.2s', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)' }}
+                                            onFocus={e => e.target.style.borderColor = '#6366f1'}
+                                            onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                                        />
                                     </div>
                                 </div>
                             </div>
 
                             {/* STEP 2: SUB-CATEGORY TILES */}
-                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <div style={{ background: 'white', borderRadius: '24px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>2</div>
+                                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '12px' }}>2</div>
                                         <div>
-                                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Sub-Category Tiles</h3>
+                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Sub-Category Tiles</h3>
                                             <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>These appear as shortcuts on the mobile app home screen.</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => currentCT.value.subCategories.push({ label: '', value: '', icon: '' })}
-                                        style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                                     >
-                                        <PlusIcon style={{ width: '18px' }} /> Add Tile
+                                        <PlusIcon style={{ width: '16px' }} /> Add Tile
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
                                     {currentCT.value.subCategories?.map((sub, idx) => (
-                                        <div key={idx} style={{ background: '#f8fafc', padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9', position: 'relative' }}>
+                                        <div key={idx} style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9', position: 'relative' }}>
                                             <button
                                                 onClick={() => currentCT.value.subCategories.splice(idx, 1)}
-                                                style={{ position: 'absolute', top: '12px', right: '12px', width: '24px', height: '24px', borderRadius: '12px', background: '#fee2e2', color: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                style={{ position: 'absolute', top: '8px', right: '8px', width: '20px', height: '20px', borderRadius: '10px', background: '#fee2e2', color: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             >
-                                                <XMarkIcon style={{ width: '14px' }} />
+                                                <XMarkIcon style={{ width: '12px' }} />
                                             </button>
                                             
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                                 <div 
                                                     onClick={() => document.getElementById(`sub-file-${idx}`).click()}
-                                                    style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'white', border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+                                                    style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'white', border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
                                                 >
                                                     {isUploadingIcon.value[`sub-${idx}`] ? (
-                                                        <div style={{ fontSize: '11px', fontWeight: '700' }}>...</div>
+                                                        <div style={{ fontSize: '10px', fontWeight: '700' }}>...</div>
                                                     ) : (localPreviews.value[`sub-${idx}`] || sub.icon) ? (
                                                         <img src={localPreviews.value[`sub-${idx}`] || sub.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
-                                                        <PlusIcon style={{ width: '24px', color: '#94a3b8' }} />
+                                                        <PlusIcon style={{ width: '20px', color: '#94a3b8' }} />
                                                     )}
                                                 </div>
                                                 <input 
@@ -466,7 +469,7 @@ export default {
                                                     placeholder="Tile Label (e.g. Mobile)"
                                                     value={sub.label}
                                                     onInput={e => { sub.label = e.target.value; sub.value = e.target.value; }}
-                                                    style={{ width: '100%', textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '2px solid #e2e8f0', padding: '4px 0', fontSize: '15px', fontWeight: '700', outline: 'none' }}
+                                                    style={{ width: '100%', textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '2px solid #e2e8f0', padding: '4px 0', fontSize: '14px', fontWeight: '700', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
@@ -474,7 +477,7 @@ export default {
                                     {(!currentCT.value.subCategories || currentCT.value.subCategories.length === 0) && (
                                         <div 
                                             onClick={() => currentCT.value.subCategories.push({ label: '', value: '', icon: '' })}
-                                            style={{ gridColumn: '1 / -1', height: '100px', border: '2px dashed #e2e8f0', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', cursor: 'pointer' }}
+                                            style={{ gridColumn: '1 / -1', height: '80px', border: '2px dashed #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' }}
                                         >
                                             Add your first Sub-Category Tile
                                         </div>
@@ -483,107 +486,105 @@ export default {
                             </div>
 
                             {/* STEP 3: ADDITIONAL QUESTIONS */}
-                            <div style={{ background: 'white', borderRadius: '24px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <div style={{ background: 'white', borderRadius: '24px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff7ed', color: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px' }}>3</div>
+                                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fff7ed', color: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '12px' }}>3</div>
                                         <div>
-                                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Custom Form Builder</h3>
-                                            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0' }}>Tailor the form users fill out after clicking a tile.</p>
+                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Custom Form Builder</h3>
+                                            <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>Tailor the form users fill out.</p>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button
-                                            onClick={addField}
-                                            style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        >
-                                            <PlusIcon style={{ width: '18px' }} /> Add Question
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={addField}
+                                        style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <PlusIcon style={{ width: '16px' }} /> Add Question
+                                    </button>
                                 </div>
 
-                                <div style={{ display: 'grid', gap: '20px' }}>
+                                <div style={{ display: 'grid', gap: '16px' }}>
                                     {currentCT.value.fields.map((field, index) => (
                                         <div key={index} style={{ 
-                                            background: field.isActive === false ? '#f1f5f9' : '#f8fafc', 
+                                            background: '#f8fafc', 
                                             border: '1px solid #e2e8f0', 
-                                            borderRadius: '20px', 
-                                            padding: '24px', 
-                                            position: 'relative', 
-                                            display: 'flex', 
-                                            gap: '20px',
-                                            opacity: field.isActive === false ? 0.6 : 1
+                                            borderRadius: '16px', 
+                                            padding: '16px', 
+                                            position: 'relative'
                                         }}>
-                                            <div style={{ minWidth: '40px' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#94a3b8', fontSize: '14px' }}>
-                                                    Q{index + 1}
-                                                </div>
-                                            </div>
+                                            <button
+                                                onClick={() => removeField(index)}
+                                                style={{ position: 'absolute', top: '12px', right: '12px', width: '24px', height: '24px', borderRadius: '12px', background: '#fee2e2', color: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <TrashIcon style={{ width: '14px' }} />
+                                            </button>
 
-                                            <div style={{ flex: 1, display: 'grid', gap: '20px' }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '16px' }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'white', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: '#94a3b8', fontSize: '12px' }}>
+                                                    {index + 1}
+                                                </div>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'end' }}>
                                                     <div>
-                                                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Label *</label>
+                                                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '8px', letterSpacing: '0.05em' }}>Question Label *</label>
                                                         <input
                                                             v-model={field.label}
                                                             onInput={e => field.label = e.target.value}
-                                                            placeholder="e.g., What happened?"
-                                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                                            placeholder="e.g., Is the suspect armed?"
+                                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', background: 'white', transition: 'all 0.2s' }}
+                                                            onFocus={e => e.target.style.borderColor = '#6366f1'}
+                                                            onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Type</label>
+                                                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '8px', letterSpacing: '0.05em' }}>Input Type</label>
                                                         <select
                                                             value={field.type}
-                                                            onChange={e => field.type = e.target.value}
-                                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                                            onChange={e => {
+                                                                field.type = e.target.value;
+                                                                if (field.type === 'boolean') {
+                                                                    field.options = [
+                                                                        { label: 'Yes', value: 'true' },
+                                                                        { label: 'No', value: 'false' }
+                                                                    ];
+                                                                } else {
+                                                                    field.options = [];
+                                                                }
+                                                            }}
+                                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', background: 'white', fontWeight: '600' }}
                                                         >
-                                                            <option value="text">Text</option>
-                                                            <option value="number">Number</option>
-                                                            <option value="boolean">Yes/No Question</option>
+                                                            <option value="boolean">Yes / No Question</option>
+                                                            <option value="text">Text Input (Short Answer)</option>
                                                         </select>
                                                     </div>
-                                                </div>
 
-                                                {field.type === 'select' && (
-                                                    <div style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                                        <div style={{ display: 'grid', gap: '10px' }}>
-                                                            {field.options && field.options.map((opt, optIdx) => (
-                                                                <div key={optIdx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                                                    <input
-                                                                        placeholder="Option name..."
-                                                                        value={opt.label}
-                                                                        onInput={e => { opt.label = e.target.value; opt.value = e.target.value; }}
-                                                                        style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }}
-                                                                    />
-                                                                    <button
-                                                                        onClick={() => field.options.splice(optIdx, 1)}
-                                                                        style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-                                                                    >
-                                                                        <XMarkIcon style={{ width: '18px' }} />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (!field.options) field.options = [];
-                                                                    field.options.push({ label: '', value: '', icon: '' });
-                                                                }}
-                                                                style={{ padding: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', color: '#6366f1', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
-                                                            >
-                                                                + Add Option
-                                                            </button>
+                                                    {field.type === 'boolean' && (
+                                                        <div style={{ gridColumn: 'span 2', background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                                            <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Configure Buttons (Labels for Mobile)</label>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                                {field.options && field.options.map((opt, optIdx) => (
+                                                                    <div key={optIdx}>
+                                                                        <label style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Button {optIdx + 1}</label>
+                                                                        <input
+                                                                            value={opt.label}
+                                                                            onInput={e => { opt.label = e.target.value; }}
+                                                                            placeholder={optIdx === 0 ? 'e.g. Yes' : 'e.g. No'}
+                                                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
 
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                                                    <button
-                                                        onClick={() => removeField(index)}
-                                                        style={{ background: 'white', border: '1px solid #fee2e2', color: '#ef4444', padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
-                                                    >
-                                                        Delete Question
-                                                    </button>
+                                                    {field.type === 'text' && (
+                                                        <div style={{ gridColumn: 'span 2', background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', opacity: 0.8 }}>
+                                                            <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>User Input Preview</label>
+                                                            <div style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', color: '#94a3b8', fontSize: '13px' }}>
+                                                                Mobile app user will see a text box here to type their answer.
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -592,7 +593,7 @@ export default {
                                     {(!currentCT.value.fields || currentCT.value.fields.length === 0) && (
                                         <div 
                                             onClick={addField}
-                                            style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '24px', color: '#64748b', cursor: 'pointer' }}
+                                            style={{ textAlign: 'center', padding: '24px', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '16px', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}
                                         >
                                             Add the first question for this case form.
                                         </div>
@@ -600,17 +601,17 @@ export default {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '32px' }}>
+                            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '24px' }}>
                                 <button
                                     onClick={() => view.value = 'list'}
-                                    style={{ padding: '12px 32px', borderRadius: '14px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+                                    style={{ padding: '10px 24px', borderRadius: '12px', border: '1px solid #cbd5e1', background: 'white', fontWeight: '700', color: '#475569', cursor: 'pointer', fontSize: '14px' }}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
                                     disabled={loading.value}
-                                    style={{ padding: '12px 40px', borderRadius: '14px', border: 'none', background: '#f43f5e', color: 'white', fontWeight: '800', cursor: 'pointer' }}
+                                    style={{ padding: '10px 32px', borderRadius: '12px', border: 'none', background: '#f43f5e', color: 'white', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}
                                 >
                                     {loading.value ? 'Saving...' : 'Save Configuration'}
                                 </button>

@@ -29,7 +29,7 @@ export default {
         ];
 
         const loadProfile = async () => {
-            const token = localStorage.getItem('partner_token');
+            const token = localStorage.getItem('token_partner');
             if (!token) {
                 error.value = 'Not authenticated';
                 loading.value = false;
@@ -93,7 +93,7 @@ export default {
         };
 
         const saveProfile = async () => {
-            const token = localStorage.getItem('partner_token');
+            const token = localStorage.getItem('token_partner');
             if (!token) return;
 
             saving.value = true;

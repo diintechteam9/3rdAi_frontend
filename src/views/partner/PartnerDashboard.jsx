@@ -35,7 +35,7 @@ export default {
 
     const loadPendingChatCount = async () => {
       try {
-        const token = localStorage.getItem('partner_token');
+        const token = localStorage.getItem('token_partner');
         if (!token) return;
         const res = await fetch(`${API_BASE_URL}/chat/partner/requests`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -49,7 +49,7 @@ export default {
       }
     };
 
-    const getToken = () => localStorage.getItem('partner_token');
+    const getToken = () => localStorage.getItem('token_partner');
 
     // ── Fetch Alerts ─────────────────────────────────────────────────────────
     const loadAlerts = async () => {
@@ -109,7 +109,7 @@ export default {
     const toggleSidebar = () => { sidebarCollapsed.value = !sidebarCollapsed.value; };
 
     const handleLogout = () => {
-      localStorage.removeItem('partner_token');
+      localStorage.removeItem('token_partner');
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = '/partner/login';

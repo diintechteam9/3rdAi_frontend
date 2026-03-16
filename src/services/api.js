@@ -19,7 +19,7 @@ const getTokenForRole = (role) => {
   }
 
   if (role) {
-    const tokenKey = role === 'partner' ? 'partner_token' : `token_${role}`;
+    const tokenKey = `token_${role}`;
     const token = localStorage.getItem(tokenKey);
 
     if (token) {
@@ -221,7 +221,7 @@ class ApiService {
             super_admin: !!localStorage.getItem('token_super_admin'),
             admin: !!localStorage.getItem('token_admin'),
             client: !!localStorage.getItem('token_client'),
-            partner: !!localStorage.getItem('partner_token')
+            partner: !!localStorage.getItem('token_partner')
           };
           const hasOtherTokens = Object.values(otherTokens).some(v => v);
           if (hasOtherTokens) {
@@ -1215,6 +1215,8 @@ const api = {
   updateCaseStatus: apiService.updateCaseStatus.bind(apiService),
   getPartnerCaseById: apiService.getPartnerCaseById.bind(apiService),
   getPartnerBasisTypes: apiService.getPartnerBasisTypes.bind(apiService),
+  getR2UploadUrl: apiService.getR2UploadUrl.bind(apiService),
+  uploadFileToR2: apiService.uploadFileToR2.bind(apiService),
   request: apiService.request.bind(apiService),
 
 };

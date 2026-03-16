@@ -25,7 +25,7 @@ export default {
           position: 'relative'
         }}>
           <Header />
-          <main style={{ padding: sidebarState.value.isMobile ? '1rem' : '2rem', flex: 1, minHeight: 'calc(100vh - 80px)' }}>
+          <main style={{ padding: '0', flex: 1, minHeight: 'calc(100vh - 80px)', overflow: 'hidden' }}>
             <RouterView />
           </main>
         </div>

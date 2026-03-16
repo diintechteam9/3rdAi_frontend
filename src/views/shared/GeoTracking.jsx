@@ -130,6 +130,19 @@ export default defineComponent({
 
         const allCameras = ref([]); // store all raw camera data
         const areaHiddenLayers = ref([]); // store layers hidden during area filtering
+        const isLiveMode = ref(true); // Toggle for LIVE / HISTORICAL
+
+        // Custom dropdown state
+        const showAreaSelector = ref(false);
+        const showCameraSelector = ref(false);
+
+        // Click-away listener
+        const handleClickOutside = (event) => {
+            if (!event.target.closest('.custom-dropdown')) {
+                showAreaSelector.value = false;
+                showCameraSelector.value = false;
+            }
+        };
 
         // Auth info — determines what this user can see
         const auth = getAuthInfo();
@@ -157,12 +170,15 @@ export default defineComponent({
                     zoom: initialZoom,
                     fadeAnimation: false,
                     markerZoomAnimation: false,
-                    zoomSnap: 0.25,  // finer zoom steps for fitBounds precision
+                    zoomSnap: 0.25,
+                    zoomControl: false, // Hide default zoom buttons as requested
                 });
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxZoom: 19,
+                // Use a cleaner, minimal map style (CartoDB Positron)
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
                 }).addTo(m);
 
                 layers.value = {
@@ -281,6 +297,14 @@ export default defineComponent({
                 if (data.type === 'FeatureCollection') {
                     allCameras.value = data.features; // save for filtering
                     renderCameras(data.features);
+
+                    // Ensure selector is populated if 'All Areas' is selected (default)
+                    if (!selectedAreaId.value) {
+                        filteredCameras.value = data.features.map(c => ({
+                            id: c.properties.cameraId,
+                            name: c.properties.locationName || c.properties.name || 'Unnamed Camera'
+                        })).sort((a, b) => a.name.localeCompare(b.name));
+                    }
                 }
             } catch (err) {
                 console.error('[GeoTracking] fetchCameras error:', err);
@@ -580,18 +604,17 @@ export default defineComponent({
             if (!areaId) {
                 // Show all cameras when 'All Areas' is selected
                 renderCameras(allCameras.value);
+                
+                // Populate filteredCameras with all cameras so the selector is still visible and functional
+                filteredCameras.value = allCameras.value.map(c => ({
+                    id: c.properties.cameraId,
+                    name: c.properties.locationName || c.properties.name || 'Unnamed Camera'
+                })).sort((a, b) => a.name.localeCompare(b.name));
 
                 const defaultCenter = auth.role === 'partner' ? [28.6139, 77.2090] : [20.5937, 78.9629];
                 const defaultZoom = auth.role === 'partner' ? 11 : 5;
                 map.value.setView(defaultCenter, defaultZoom);
 
-                // Re-fit to all boundaries
-                if (layers.value.boundaries) {
-                    const groupBounds = layers.value.boundaries.getBounds();
-                    if (groupBounds && groupBounds.isValid()) {
-                        map.value.fitBounds(groupBounds, { padding: [40, 40] });
-                    }
-                }
                 return;
             }
 
@@ -679,10 +702,52 @@ export default defineComponent({
             });
         };
 
+        const goToCurrentLocation = () => {
+            if (!map.value) return;
+            map.value.locate({ setView: true, maxZoom: 16 });
+        };
+
+        const handleZoom = (delta) => {
+            if (!map.value) return;
+            if (delta > 0) map.value.zoomIn();
+            else map.value.zoomOut();
+        };
+
+        const toggleMode = (mode) => {
+            isLiveMode.value = mode === 'live';
+        };
+
         // ── Lifecycle ─────────────────────────────────────────────────────────
         onMounted(async () => {
             isMounted = true;
             initMap();
+            document.addEventListener('mousedown', handleClickOutside);
+
+            // Inject global styles for custom dropdowns and scrollbar hiding
+            const style = document.createElement('style');
+            style.id = 'geo-tracking-custom-styles';
+            style.innerHTML = `
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .hide-scrollbar::-webkit-scrollbar { 
+                    display: none !important;
+                    width: 0 !important;
+                    height: 0 !important;
+                }
+                .hide-scrollbar { 
+                    -ms-overflow-style: none !important; 
+                    scrollbar-width: none !important; 
+                    overflow-x: hidden !important;
+                }
+                .dropdown-item:hover { 
+                    background: rgba(99, 102, 241, 0.1) !important; 
+                    color: #818cf8 !important; 
+                }
+            `;
+            document.head.appendChild(style);
+
             // ✅ FIX: Fetch areas FIRST (sequential) so fitBounds runs on a ready map.
             // Then fetch cameras & cases in parallel (they don't affect map zoom).
             await fetchAreas();
@@ -692,6 +757,11 @@ export default defineComponent({
 
         onUnmounted(() => {
             isMounted = false;
+            document.removeEventListener('mousedown', handleClickOutside);
+
+            // Clean up injected styles
+            const style = document.getElementById('geo-tracking-custom-styles');
+            if (style) style.remove();
 
             if (socketHandler.value) {
                 socketHandler.value.disconnect();
@@ -706,110 +776,175 @@ export default defineComponent({
 
         // ── Template ──────────────────────────────────────────────────────────
         return () => (
-            <div style="height: 100%; display: flex; flex-direction: column; background: #f8fafc; padding: 14px 18px; gap: 10px; box-sizing: border-box; overflow: hidden;">
+            <div style="height: 100%; display: flex; flex-direction: column; background: #0f172a; padding: 0; box-sizing: border-box; overflow: hidden; font-family: 'Inter', sans-serif;">
 
-                {/* ── Header ── */}
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                    <div>
-                        <h2 style="margin:0; font-size:22px; font-weight:700; background:linear-gradient(135deg,#2563eb,#4f46e5); -webkit-background-clip:text; color:transparent;">
-                            🗺️ Geo Tracking Dashboard
-                        </h2>
-                        <p style="margin:4px 0 0; font-size:13px; color:#64748b;">
-                            {auth.role === 'partner'
-                                ? 'Showing your assigned area and cases'
-                                : 'All city areas, cases and partner assignments'}
-                        </p>
-                    </div>
+                {/* ── Main Map Container Wrapper ── */}
 
-                    {/* Advanced Filters */}
-                    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-                        {/* Area Selector */}
-                        <div style="display:flex; align-items:center; gap:10px; background:white; padding:10px 16px; border-radius:14px; border:1.5px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.04); transition:all 0.3s ease;">
-                            <span style="font-size:14px; font-weight:700; color:#64748b;">📍 Area:</span>
-                            <select
-                                value={selectedAreaId.value}
-                                onChange={handleAreaChange}
-                                style="border:none; background:transparent; font-size:14px; font-weight:700; color:#1e293b; outline:none; cursor:pointer; min-width:180px; font-family:inherit;"
+                {/* ── Main Map Container Wrapper ── */}
+                <div style="flex:1; position: relative; width: 100%; height: 100%; overflow: hidden;">
+
+                    {/* ── ACTUAL MAP ── */}
+                    <div
+                        ref={mapContainer}
+                        style="width: 100%; height: 100%; z-index: 1;"
+                    />
+
+                    <div style="position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; gap: 12px; align-items: center;">
+                        {/* Area Selector (Custom Dropdown) */}
+                        <div class="custom-dropdown" style="position: relative;">
+                            <div 
+                                onClick={() => { showAreaSelector.value = !showAreaSelector.value; showCameraSelector.value = false; }}
+                                style="background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); cursor: pointer; transition: all 0.2s;"
+                                onMouseOver={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}
+                                onMouseOut={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
                             >
-                                <option value="">All City Areas</option>
-                                {availableAreas.value.map(area => (
-                                    <option key={area.id} value={area.id}>{area.name}</option>
-                                ))}
-                            </select>
+                                <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Area</span>
+                                <span style="font-size: 13px; font-weight: 700; color: #f8fafc; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {selectedAreaId.value ? availableAreas.value.find(a => a.id === selectedAreaId.value)?.name : 'All City Areas'}
+                                </span>
+                                <span style={`font-size: 10px; color: #6366f1; transition: transform 0.3s; ${showAreaSelector.value ? 'transform: rotate(180deg);' : ''}`}>▼</span>
+                            </div>
+
+                            {showAreaSelector.value && (
+                                <div class="dropdown-list hide-scrollbar" style="position: absolute; top: calc(100% + 8px); left: 0; width: 220px; max-height: 300px; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow-y: auto; overflow-x: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5); z-index: 1001; animation: slideIn 0.2s ease-out;">
+                                    <div 
+                                        onClick={() => { handleAreaChange({ target: { value: '' } }); showAreaSelector.value = false; }}
+                                        class="dropdown-item"
+                                        style={`padding: 10px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s; ${!selectedAreaId.value ? 'background: rgba(99, 102, 241, 0.15); color: #818cf8; font-weight: 700;' : 'color: #cbd5e1;'}`}
+                                    >
+                                        All City Areas
+                                    </div>
+                                    {availableAreas.value.map(area => (
+                                        <div 
+                                            key={area.id}
+                                            onClick={() => { handleAreaChange({ target: { value: area.id } }); showAreaSelector.value = false; }}
+                                            class="dropdown-item"
+                                            style={`padding: 10px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s; ${selectedAreaId.value === area.id ? 'background: rgba(99, 102, 241, 0.15); color: #818cf8; font-weight: 700;' : 'color: #cbd5e1;'}`}
+                                        >
+                                            {area.name}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Camera Selector (Only shown when an area is selected) */}
-                        {selectedAreaId.value && filteredCameras.value.length > 0 && (
-                            <div style="display:flex; align-items:center; gap:10px; background:#f0f9ff; padding:10px 16px; border-radius:14px; border:1.5px solid #bae6fd; box-shadow:0 2px 8px rgba(14,165,233,0.1); animation: slideIn 0.3s ease-out;">
-                                <span style="font-size:14px; font-weight:700; color:#0369a1;">📷 Camera:</span>
-                                <select
-                                    value={selectedCameraId.value}
-                                    onChange={handleCameraChange}
-                                    style="border:none; background:transparent; font-size:14px; font-weight:700; color:#0c4a6e; outline:none; cursor:pointer; min-width:200px; font-family:inherit;"
+                        {/* Camera Selector (Custom Dropdown) */}
+                        {filteredCameras.value.length > 0 && (
+                            <div class="custom-dropdown" style="position: relative;">
+                                <div 
+                                    onClick={() => { showCameraSelector.value = !showCameraSelector.value; showAreaSelector.value = false; }}
+                                    style="background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); cursor: pointer; transition: all 0.2s;"
+                                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}
+                                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
                                 >
-                                    <option value="">Select Camera ({filteredCameras.value.length})</option>
-                                    {filteredCameras.value.map(cam => (
-                                        <option key={cam.id} value={cam.id}>{cam.name}</option>
-                                    ))}
-                                </select>
+                                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Camera</span>
+                                    <span style="font-size: 13px; font-weight: 700; color: #f8fafc; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {selectedCameraId.value ? filteredCameras.value.find(c => String(c.id) === String(selectedCameraId.value))?.name : `Select Camera (${filteredCameras.value.length})`}
+                                    </span>
+                                    <span style={`font-size: 10px; color: #6366f1; transition: transform 0.3s; ${showCameraSelector.value ? 'transform: rotate(180deg);' : ''}`}>▼</span>
+                                </div>
+
+                                {showCameraSelector.value && (
+                                    <div class="dropdown-list hide-scrollbar" style="position: absolute; top: calc(100% + 8px); left: 0; width: 240px; max-height: 300px; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow-y: auto; overflow-x: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5); z-index: 1001; animation: slideIn 0.2s ease-out;">
+                                        <div 
+                                            onClick={() => { handleCameraChange({ target: { value: '' } }); showCameraSelector.value = false; }}
+                                            class="dropdown-item"
+                                            style={`padding: 10px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s; ${!selectedCameraId.value ? 'background: rgba(99, 102, 241, 0.15); color: #818cf8; font-weight: 700;' : 'color: #cbd5e1;'}`}
+                                        >
+                                            All Cameras ({filteredCameras.value.length})
+                                        </div>
+                                        {filteredCameras.value.map(cam => (
+                                            <div 
+                                                key={cam.id}
+                                                onClick={() => { handleCameraChange({ target: { value: cam.id } }); showCameraSelector.value = false; }}
+                                                class="dropdown-item"
+                                                style={`padding: 10px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s; ${String(selectedCameraId.value) === String(cam.id) ? 'background: rgba(99, 102, 241, 0.15); color: #818cf8; font-weight: 700;' : 'color: #cbd5e1;'}`}
+                                            >
+                                                {cam.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    {/* Layer toggles */}
-                    <div style="display:flex; gap:12px; background:white; padding:10px 16px; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,0.08); border:1px solid #e2e8f0; flex-wrap:wrap;">
+                    {/* ── OVERLAY: ZOOM CONTROLS (MOVED DOWN) ── */}
+                    <div style="position: absolute; top: 230px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                            <button
+                                onClick={() => handleZoom(1)}
+                                style="width: 44px; height: 44px; background: transparent; border: none; color: #f8fafc; font-size: 20px; font-weight: 300; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;"
+                                onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                                onMouseOut={(e) => e.target.style.background = 'transparent'}
+                            >
+                                +
+                            </button>
+                            <button
+                                onClick={() => handleZoom(-1)}
+                                style="width: 44px; height: 44px; background: transparent; border: none; color: #f8fafc; font-size: 24px; font-weight: 300; cursor: pointer; transition: background 0.2s;"
+                                onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                                onMouseOut={(e) => e.target.style.background = 'transparent'}
+                            >
+                                −
+                            </button>
+                        </div>
+
+
+                    </div>
+
+                    {/* ── OVERLAY: TOP RIGHT VIEW LAYERS PANEL ── */}
+                    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000; width: 160px; background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(16px); padding: 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 12px 48px rgba(0,0,0,0.4);">
+                        <div style="font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 14px;">View Layers</div>
+
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            {[
+                                { key: 'boundaries', label: 'Areas', color: '#f97316' },
+                                { key: 'cameras', label: 'Cameras', color: '#f97316' },
+                                { key: 'cases', label: 'Cases', color: '#6366f1' },
+                                { key: 'heatmap', label: 'Heatmap', color: '#f97316' }
+                            ].map(({ key, label, color }) => (
+                                <div key={key} style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-size: 13px; font-weight: 600; color: #cbd5e1;">{label}</span>
+                                    <div
+                                        onClick={() => handleToggle(key)}
+                                        style={`width: 32px; height: 16px; border-radius: 20px; cursor: pointer; position: relative; transition: all 0.3s; ${toggles.value[key] ? `background: ${color};` : 'background: #334155;'}`}
+                                    >
+                                        <div style={`width: 10px; height: 10px; background: white; border-radius: 50%; position: absolute; top: 3px; transition: all 0.3s; ${toggles.value[key] ? 'left: 19px;' : 'left: 3px;'}`} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── OVERLAY: BOTTOM STATS CARDS ── */}
+                    <div style="position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px;">
                         {[
-                            { key: 'boundaries', label: 'Areas', emoji: '🔷' },
-                            { key: 'cameras', label: 'Cameras', emoji: '📷' },
-                            { key: 'cases', label: 'Cases', emoji: '📍' },
-                            { key: 'heatmap', label: 'Heatmap', emoji: '🔥' }
-                        ].map(({ key, label, emoji }) => (
-                            <label key={key} style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
-                                <input
-                                    type="checkbox"
-                                    style="width:15px; height:15px; accent-color:#4f46e5; cursor:pointer;"
-                                    checked={toggles.value[key]}
-                                    onChange={() => handleToggle(key)}
-                                />
-                                <span style="font-size:13px; font-weight:500; color:#374151;">
-                                    {emoji} {label}
-                                </span>
-                            </label>
+                            { label: 'Total Cases', value: statsRef.value.total, color: '#f97316', trend: '+2%' },
+                            { label: 'Active Cameras', value: allCameras.value.length || 0, color: '#3b82f6', trend: '-1%' },
+                            { label: 'Active Alerts', value: statsRef.value.pending, color: '#ef4444', trend: '-5%' },
+                            { label: 'Active Patrols', value: 24, color: '#8b5cf6', trend: '0%' }
+                        ].map(({ label, value, color, trend }) => (
+                            <div key={label} style={`flex: 1; min-width: 115px; max-width: 180px; background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-left: 3px solid ${color}; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`}>
+                                <div style="font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">{label}</div>
+                                <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                                    <div style="font-size: 18px; font-weight: 800; color: #f8fafc;">{value}</div>
+                                    <div style={`font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 700; background: ${color}20; color: ${color};`}>
+                                        {trend}
+                                    </div>
+                                </div>
+                            </div>
                         ))}
                     </div>
-                </div>
 
-                {/* ── Stats bar ── */}
-                <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                    {[
-                        { label: 'Total Cases', value: statsRef.value.total, color: '#3b82f6' },
-                        { label: 'Pending', value: statsRef.value.pending, color: '#f59e0b' },
-                        { label: 'Attended', value: statsRef.value.attended, color: '#10b981' },
-                        { label: 'Resolved', value: statsRef.value.resolved, color: '#22c55e' }
-                    ].map(({ label, value, color }) => (
-                        <div key={label} style={`background:white; border-radius:10px; padding:10px 18px; border-left:3px solid ${color}; box-shadow:0 1px 3px rgba(0,0,0,0.06); flex:1; min-width:120px;`}>
-                            <div style={`font-size:22px; font-weight:700; color:${color};`}>{value}</div>
-                            <div style="font-size:12px; color:#6b7280; margin-top:2px;">{label}</div>
+                    {/* No-area warning Overlay */}
+                    {noAreaWarning.value && (
+                        <div style="position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 2000; background: rgba(254, 243, 199, 0.9); backdrop-filter: blur(4px); border: 1px solid #fbbf24; border-radius: 12px; padding: 12px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                            <span style="font-size: 24px;">⚠️</span>
+                            <div style="color: #92400e; font-size: 13px; font-weight: 600;">No assigned area detected. Map features might be limited.</div>
                         </div>
-                    ))}
+                    )}
                 </div>
-
-                {/* ── No-area warning for partners ── */}
-                {noAreaWarning.value && (
-                    <div style="background:#fef3c7; border:1.5px solid #fbbf24; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:12px; font-size:14px; color:#92400e; font-weight:600;">
-                        <span style="font-size:22px;">⚠️</span>
-                        <div>
-                            <div>You have not been assigned to any area yet.</div>
-                            <div style="font-size:12px; font-weight:400; margin-top:2px; color:#b45309;">Please contact your admin/client to assign you to an area. The map will show your jurisdiction once assigned.</div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Map container — always rendered (never conditionally mounted) ── */}
-                <div
-                    ref={mapContainer}
-                    style="flex:1; min-height:350px; border-radius:16px; overflow:hidden; box-shadow:0 8px 25px -5px rgba(0,0,0,0.12); border:1.5px solid #e2e8f0; z-index:10; width:100%;"
-                />
             </div>
         );
     }

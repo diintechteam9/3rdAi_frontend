@@ -8,6 +8,7 @@ export default {
     setup() {
         const router = useRouter();
         const cases = ref([]);
+        const caseTypes = ref([]);
         const loading = ref(true);
         const error = ref('');
 
@@ -17,15 +18,24 @@ export default {
         const fetchCases = async () => {
             loading.value = true;
             try {
-                const response = await api.getUserCases();
-                if (response.success) {
-                    cases.value = response.data.alerts;
+                // Fetch cases and types in parallel
+                const [casesRes, typesRes] = await Promise.all([
+                    api.getUserCases(),
+                    api.getMobileCaseTypes()
+                ]);
+
+                if (casesRes.success) {
+                    cases.value = casesRes.data.alerts;
                 } else {
-                    error.value = response.message || 'Failed to fetch cases';
+                    error.value = casesRes.message || 'Failed to fetch cases';
+                }
+
+                if (typesRes?.data) {
+                    caseTypes.value = typesRes.data;
                 }
             } catch (err) {
                 console.error(err);
-                error.value = 'Error loading cases. Please try again.';
+                error.value = 'Error loading dashboard. Please try again.';
             } finally {
                 loading.value = false;
             }
@@ -57,13 +67,13 @@ export default {
 
         const getStatusColor = (status) => {
             switch (status) {
-                case 'Reported': return { bg: '#e0f2fe20', text: '#38bdf8' }; // light blue
-                case 'Under Review': return { bg: '#fef3c720', text: '#fbbf24' }; // light yellow/orange
-                case 'Verified': return { bg: '#ede9fe20', text: '#a78bfa' }; // light purple
-                case 'Action Taken': return { bg: '#dbeafe20', text: '#60a5fa' }; // blue
-                case 'Resolved': return { bg: '#dcfce720', text: '#4ade80' }; // green
-                case 'Rejected': return { bg: '#fee2e220', text: '#f87171' }; // red
-                default: return { bg: '#f1f5f920', text: '#94a3b8' }; // gray
+                case 'Reported': return { bg: '#e0f2fe', text: '#0369a1' }; // light blue
+                case 'Under Review': return { bg: '#fef3c7', text: '#b45309' }; // light yellow/orange
+                case 'Verified': return { bg: '#ede9fe', text: '#6d28d9' }; // light purple
+                case 'Action Taken': return { bg: '#dbeafe', text: '#1d4ed8' }; // blue
+                case 'Resolved': return { bg: '#dcfce7', text: '#15803d' }; // green
+                case 'Rejected': return { bg: '#fee2e2', text: '#b91c1c' }; // red
+                default: return { bg: '#f1f5f9', text: '#475569' }; // gray
             }
         };
 
@@ -73,16 +83,33 @@ export default {
         };
 
         const getCaseTypeName = (typeId) => {
-            const types = {
-                'robbery': 'Robbery',
-                'unidentified_emergency': 'Emergency / Unknown Incident',
-                'snatching': 'Snatching',
-                'theft': 'Theft',
-                'harassment': 'Harassment / Suspicious Activity',
-                'accident': 'Accident',
-                'camera_issue': 'Camera / Safety Issue'
-            };
-            return types[typeId] || typeId || 'General Issue';
+            const ct = caseTypes.value.find(t => t.id === typeId);
+            return ct?.name || typeId || 'General Issue';
+        };
+
+        const getSubCategoryInfo = (caseObj) => {
+            const ct = caseTypes.value.find(t => t.id === (caseObj.metadata?.type || ''));
+            if (!ct) return null;
+
+            // Find the sub-category value from metadata
+            const selectField = ct.fields?.find(f => f.type === 'select');
+            if (!selectField) return null;
+
+            const subVal = caseObj.metadata[selectField.name];
+            if (!subVal) return null;
+
+            const option = selectField.options?.find(o => o.value === subVal);
+            return option; // Contains label and icon
+        };
+
+        const resolveIcon = (iconSource) => {
+            if (!iconSource) return null;
+            if (iconSource.startsWith('http') || iconSource.startsWith('data:') || iconSource.startsWith('/')) {
+                return <img src={iconSource} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+            }
+            // Add emoji/char support if needed, but primary is URL
+            if (iconSource.length <= 4) return <span style={{ fontSize: '18px' }}>{iconSource}</span>;
+            return null;
         };
 
         const handleCaseClick = (caseId) => {
@@ -94,88 +121,98 @@ export default {
                 <style>{`
                     .cases-summary-row {
                         display: flex;
-                        gap: 0.75rem;
-                        padding: 1rem;
-                        background: transparent;
-                        border-bottom: 1px solid rgba(255,255,255,0.05);
-                        z-index: 10;
+                        gap: 1rem;
+                        padding: 0.75rem 0;
+                        background: #f8fafc;
+                        border-bottom: 1px solid #e2e8f0;
+                        position: sticky;
+                        top: 60px;
+                        z-index: 15;
+                        justify-content: flex-start;
                     }
                     .summary-box {
-                        flex: 1;
-                        padding: 0.75rem 0.5rem;
-                        background: rgba(255,255,255,0.03);
-                        border-radius: 16px;
+                        width: 130px;
+                        padding: 0.8rem 0.6rem;
+                        background: white;
+                        border-radius: 12px;
                         text-align: center;
-                        border: 1px solid rgba(255,255,255,0.05);
+                        border: 1px solid #e2e8f0;
                         cursor: pointer;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         display: flex;
-                        flex-direction: column;
+                        flex-direction: row;
                         align-items: center;
-                        gap: 2px;
+                        justify-content: center;
+                        gap: 8px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
                     }
                     .summary-box.active {
-                        background: rgba(99, 102, 241, 0.1);
-                        border-color: #6366f1;
-                        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+                        background: #eff6ff;
+                        border-color: #3b82f6;
+                        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
                         transform: translateY(-1px);
                     }
                     .summary-val {
-                        font-size: 1.25rem;
+                        font-size: 1.1rem;
                         font-weight: 900;
-                        color: white;
+                        color: #0f172a;
                         line-height: 1;
                     }
-                    .summary-box.active .summary-val { color: #818cf8; }
+                    .summary-box.active .summary-val { color: #2563eb; }
                     .summary-label {
-                        font-size: 0.65rem;
+                        font-size: 0.6rem;
                         font-weight: 800;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
-                        color: #94a3b8;
+                        color: #64748b;
                     }
-                    .summary-box.active .summary-label { color: #818cf8; }
+                    .summary-box.active .summary-label { color: #2563eb; }
 
                     .sub-tabs-container {
                         display: flex;
                         overflow-x: auto;
-                        gap: 0.5rem;
-                        padding: 0.5rem 1rem;
+                        gap: 0.4rem;
+                        padding: 0.6rem 0;
+                        background: #f8fafc;
                         scrollbar-width: none;
+                        position: sticky;
+                        top: 120px;
+                        z-index: 14;
+                        border-bottom: 1px solid #e2e8f0;
                     }
                     .sub-tabs-container::-webkit-scrollbar { display: none; }
                     .sub-tab {
-                        padding: 0.4rem 0.8rem;
-                        border-radius: 10px;
-                        font-size: 0.7rem;
+                        padding: 0.35rem 0.7rem;
+                        border-radius: 8px;
+                        font-size: 0.65rem;
                         font-weight: 700;
                         white-space: nowrap;
                         cursor: pointer;
-                        background: rgba(255,255,255,0.03);
-                        color: #94a3b8;
-                        border: 1px solid rgba(255,255,255,0.05);
+                        background: white;
+                        color: #64748b;
+                        border: 1px solid #e2e8f0;
                         transition: all 0.2s;
                     }
                     .sub-tab.active {
-                        background: #6366f1;
+                        background: #3b82f6;
                         color: white !important;
-                        border-color: #6366f1;
-                        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+                        border-color: #3b82f6;
+                        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
                     }
 
                     .case-card {
-                        background: rgba(255,255,255,0.02);
-                        border-radius: 20px;
-                        padding: 1rem;
-                        margin: 0 1rem 0.75rem;
-                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                        border: 1px solid rgba(255,255,255,0.04);
+                        background: white;
+                        border-radius: 16px;
+                        padding: 0.75rem;
+                        margin-bottom: 0.6rem;
+                        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+                        border: 1px solid #e2e8f0;
                         cursor: pointer;
                         transition: all 0.3s ease;
                         position: relative;
                         overflow: hidden;
                     }
-                    .case-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); border-color: rgba(99, 102, 241, 0.4); }
+                    .case-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); border-color: #3b82f6; }
                     .status-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; margin-right: 5px; }
                     .case-id { font-size: 0.6rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
                 `}</style>
@@ -186,17 +223,17 @@ export default {
                         class={['summary-box', activeCategory.value === 'open' ? 'active' : ''].join(' ')}
                         onClick={() => activeCategory.value = 'open'}
                     >
-                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>🕒</div>
-                        <div class="summary-val">{counts.value.open}</div>
-                        <div class="summary-label">Open Cases</div>
+                        <div style={{ fontSize: '0.9rem' }}>🕒</div>
+                        <div class="summary-val" style={{ fontSize: '0.9rem' }}>{counts.value.open}</div>
+                        <div class="summary-label" style={{ fontSize: '0.55rem' }}>Open</div>
                     </div>
                     <div
                         class={['summary-box', activeCategory.value === 'closed' ? 'active' : ''].join(' ')}
                         onClick={() => activeCategory.value = 'closed'}
                     >
-                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>✅</div>
-                        <div class="summary-val">{counts.value.closed}</div>
-                        <div class="summary-label">Closed Cases</div>
+                        <div style={{ fontSize: '0.9rem' }}>✅</div>
+                        <div class="summary-val" style={{ fontSize: '0.9rem' }}>{counts.value.closed}</div>
+                        <div class="summary-label" style={{ fontSize: '0.55rem' }}>Closed</div>
                     </div>
                 </div>
 
@@ -248,18 +285,28 @@ export default {
                                                 <DocumentTextIcon style={{ width: '18px', height: '18px', color: statusColor.text }} />
                                             </div>
                                             <div>
-                                                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800', color: 'white', letterSpacing: '-0.02em' }}>{caseTypeName}</h3>
+                                                <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                                                    {caseTypeName}
+                                                    {getSubCategoryInfo(c) && (
+                                                        <span style={{ color: '#64748b', fontWeight: '600' }}> · {getSubCategoryInfo(c).label}</span>
+                                                    )}
+                                                </h3>
                                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', color: statusColor.text, fontWeight: '700', marginTop: '1px' }}>
                                                     <span class="status-dot" style={{ backgroundColor: statusColor.text }}></span>
                                                     {c.status || 'Reported'}
                                                 </div>
                                             </div>
                                         </div>
+                                        {getSubCategoryInfo(c)?.icon && (
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {resolveIcon(getSubCategoryInfo(c).icon)}
+                                            </div>
+                                        )}
                                         <div class="case-id">#{c._id.slice(-4)}</div>
                                     </div>
 
-                                    <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '0.75rem', marginBottom: '0.75rem', border: '1px solid rgba(255,255,255,0.03)' }}>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '0.75rem', marginBottom: '0.75rem', border: '1px solid #e2e8f0' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                             {c.message || 'No details shared.'}
                                         </p>
                                     </div>

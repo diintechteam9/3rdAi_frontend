@@ -227,7 +227,7 @@ export default {
                                     </svg>
                                 </div>
                                 <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#111827', letterSpacing: '-0.5px' }}>
-                                    Area Assignment
+                                    Areas
                                 </h1>
                             </div>
                             <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', lineHeight: '1.5' }}>
