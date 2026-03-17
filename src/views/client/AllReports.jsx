@@ -102,11 +102,11 @@ export default {
     onMounted(fetchReports);
 
     return () => (
-      <div style={{ padding: '24px', fontFamily: "'Inter','Segoe UI',sans-serif", background: '#f8fafc', minHeight: '100vh', position: 'relative' }}>
+      <div style={{ padding: '24px 24px 80px', fontFamily: "'Inter','Segoe UI',sans-serif", position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 6px' }}>📋 All Citizen Reports</h1>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>View all complaints and cases reported by users</p>
+            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 6px' }}>📋 Citizen Report</h1>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>View complaints and cases reported by citizens</p>
           </div>
           <button onClick={fetchReports} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#334155', fontSize: '14px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'background 0.2s' }}>
             🔄 Refresh

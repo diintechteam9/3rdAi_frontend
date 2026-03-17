@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '../../services/api.js';
 
 export default {
@@ -19,6 +19,24 @@ export default {
       alternateContact: '',
       cityBoundary: 'Delhi'
     });
+    const mapFile = ref(null);
+    const showMapUpdateModal = ref(false);
+    const activeClientId = ref(null);
+    const mapUpdating = ref(false);
+    const searchQuery = ref('');
+    const showEditModal = ref(false);
+    const editingClient = ref({
+      _id: null,
+      organizationName: '',
+      password: '',
+      confirmPassword: ''
+    });
+    const updatingClient = ref(false);
+    const activeDropdownId = ref(null);
+
+    const toggleDropdown = (id) => {
+      activeDropdownId.value = activeDropdownId.value === id ? null : id;
+    };
 
     const fetchClients = async () => {
       try {
@@ -68,8 +86,17 @@ export default {
         return;
       }
       try {
-        await api.createClient(newClient.value);
+        const formData = new FormData();
+        Object.keys(newClient.value).forEach(key => {
+          formData.append(key, newClient.value[key]);
+        });
+        if (mapFile.value) {
+          formData.append('mapFile', mapFile.value);
+        }
+
+        await api.createClient(formData);
         showCreateModal.value = false;
+        mapFile.value = null;
         newClient.value = {
           organizationName: '',
           email: '',
@@ -88,6 +115,81 @@ export default {
       }
     };
 
+    const handleUpdateMap = async (e) => {
+      e.preventDefault();
+      if (!mapFile.value) return;
+      mapUpdating.value = true;
+      try {
+        const formData = new FormData();
+        formData.append('mapFile', mapFile.value);
+        
+        await api.updateClientMap(activeClientId.value, formData);
+        alert('Map data updated and merged successfully!');
+        showMapUpdateModal.value = false;
+        mapFile.value = null;
+      } catch (error) {
+        alert(error.message || 'Failed to update map data');
+      } finally {
+        mapUpdating.value = false;
+      }
+    };
+
+    const handleDelete = async (clientId) => {
+      if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) return;
+      try {
+        await api.deleteClient(clientId);
+        fetchClients();
+      } catch (error) {
+        alert(error.message || 'Failed to delete client');
+      }
+    };
+
+    const openEditModal = (client) => {
+      editingClient.value = {
+        _id: client._id,
+        organizationName: client.organizationName,
+        password: '',
+        confirmPassword: ''
+      };
+      showEditModal.value = true;
+    };
+
+    const handleUpdateClient = async (e) => {
+      e.preventDefault();
+      if (editingClient.value.password && editingClient.value.password !== editingClient.value.confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
+
+      updatingClient.value = true;
+      try {
+        const updateData = {
+          organizationName: editingClient.value.organizationName
+        };
+        if (editingClient.value.password) {
+          updateData.password = editingClient.value.password;
+        }
+
+        await api.updateClient(editingClient.value._id, updateData);
+        alert('Client updated successfully!');
+        showEditModal.value = false;
+        fetchClients();
+      } catch (error) {
+        alert(error.message || 'Failed to update client');
+      } finally {
+        updatingClient.value = false;
+      }
+    };
+
+    const filteredClients = computed(() => {
+      if (!searchQuery.value) return clients.value;
+      const q = searchQuery.value.toLowerCase();
+      return clients.value.filter(c => 
+        c.email.toLowerCase().includes(q) || 
+        (c.organizationName && c.organizationName.toLowerCase().includes(q))
+      );
+    });
+
     onMounted(() => {
       fetchClients();
     });
@@ -97,7 +199,17 @@ export default {
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="card-title mb-0">Clients</h1>
-            <button onClick={() => showCreateModal.value = true} class="btn btn-primary">Add Client</button>
+            <div class="d-flex gap-2">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Search clients..."
+                style={{ width: '250px' }}
+                value={searchQuery.value}
+                onInput={(e) => searchQuery.value = e.target.value}
+              />
+              <button onClick={() => showCreateModal.value = true} class="btn btn-primary">Add Client</button>
+            </div>
           </div>
 
           <div class="table-responsive">
@@ -114,14 +226,14 @@ export default {
                 </tr>
               </thead>
               <tbody>
-                {clients.value.map(client => (
-                  <tr key={client._id}>
-                    <td>{client.email}</td>
-                    <td>{client.organizationName || '-'}</td>
-                    <td>{client.cityBoundary || '-'}</td>
-                    <td>{client.contactNumber || '-'}</td>
-                    <td>{new Date(client.createdAt).toLocaleDateString()}</td>
-                    <td>
+                {filteredClients.value.map(client => (
+                  <tr key={client._id} style={{ verticalAlign: 'middle' }}>
+                    <td style={{ padding: '25px 15px' }}>{client.email}</td>
+                    <td style={{ padding: '25px 15px' }}>{client.organizationName || '-'}</td>
+                    <td style={{ padding: '25px 15px' }}>{client.cityBoundary || '-'}</td>
+                    <td style={{ padding: '25px 15px' }}>{client.contactNumber || '-'}</td>
+                    <td style={{ padding: '25px 15px' }}>{new Date(client.createdAt).toLocaleDateString()}</td>
+                    <td style={{ padding: '25px 15px' }}>
                       <span class={`badge ${!client.isActive ? 'bg-danger' :
                           !client.loginApproved ? 'bg-warning text-dark' :
                             'bg-success'
@@ -129,31 +241,62 @@ export default {
                         {!client.isActive ? 'Inactive' : !client.loginApproved ? 'Pending ⏳' : 'Active ✓'}
                       </span>
                     </td>
-                    <td>
-                      {!client.loginApproved ? (
-                        <button
-                          onClick={() => handleApprove(client._id)}
-                          class="btn btn-success btn-sm me-2"
-                        >
-                          ✓ Approve
-                        </button>
-                      ) : (
-                        <>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end align-items-center gap-2">
+                        {!client.loginApproved ? (
+                          <button
+                            onClick={() => handleApprove(client._id)}
+                            class="btn btn-success btn-sm"
+                          >
+                            ✓ Approve
+                          </button>
+                        ) : (
                           <button
                             onClick={() => handleLoginAsClient(client._id)}
-                            class="btn btn-primary btn-sm me-2"
+                            class="btn btn-primary btn-sm"
                           >
-                            Login
+                            🔑 Login
                           </button>
-                          <button
-                            onClick={() => handleRevoke(client._id)}
-                            class="btn btn-warning btn-sm me-2"
+                        )}
+
+                        <div class="dropdown" style={{ position: 'relative' }}>
+                          <button 
+                            class="btn btn-outline-secondary btn-sm" 
+                            type="button" 
+                            onClick={(e) => { e.stopPropagation(); toggleDropdown(client._id); }}
+                            style={{ width: '32px', height: '32px', padding: '0', borderRadius: '50%', border: 'none' }}
                           >
-                            Revoke
+                            ⋮
                           </button>
-                        </>
-                      )}
-                      <button onClick={() => handleDelete(client._id)} class="btn btn-danger btn-sm">Delete</button>
+                          {activeDropdownId.value === client._id && (
+                            <ul class="dropdown-menu show" style={{ position: 'absolute', right: 0, top: '100%', display: 'block', zIndex: 1000, minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                              {client.loginApproved && (
+                                <li>
+                                  <button class="dropdown-item text-warning" onClick={() => { handleRevoke(client._id); activeDropdownId.value = null; }}>
+                                    🚫 Revoke
+                                  </button>
+                                </li>
+                              )}
+                              <li>
+                                <button class="dropdown-item text-info" onClick={() => { openEditModal(client); activeDropdownId.value = null; }}>
+                                  📝 Edit Client
+                                </button>
+                              </li>
+                              <li>
+                                <button class="dropdown-item text-info" onClick={() => { activeClientId.value = client._id; showMapUpdateModal.value = true; activeDropdownId.value = null; }}>
+                                  🗺️ Update Map
+                                </button>
+                              </li>
+                              <li><hr class="dropdown-divider" /></li>
+                              <li>
+                                <button class="dropdown-item text-danger" onClick={() => { handleDelete(client._id); activeDropdownId.value = null; }}>
+                                  🗑️ Delete
+                                </button>
+                              </li>
+                            </ul>
+                          )}
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -273,13 +416,26 @@ export default {
                         <label class="form-label">Select City Boundary <span class="text-danger">*</span></label>
                         <select
                           value={newClient.value.cityBoundary}
-                          onChange={(e) => newClient.value.cityBoundary = e.target.value}
+                          onInput={(e) => newClient.value.cityBoundary = e.target.value}
                           class="form-select"
                           required
                         >
                           <option value="Delhi">Delhi</option>
                           <option value="Bangalore">Bangalore</option>
+                          <option value="Noida">Noida</option>
+                          <option value="Other">Other</option>
                         </select>
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label">Upload Map Data (KML / GeoJSON)</label>
+                        <input
+                          type="file"
+                          class="form-control"
+                          accept=".kml,.geojson,.json"
+                          onChange={(e) => mapFile.value = e.target.files[0]}
+                        />
+                        <div class="form-text">Choose a KML or GeoJSON file to automatically create areas and cameras.</div>
                       </div>
 
                       <hr class="my-3" />
@@ -316,6 +472,106 @@ export default {
                     <div class="modal-footer" style={{ flexShrink: 0 }}>
                       <button type="button" class="btn btn-secondary" onClick={() => showCreateModal.value = false}>Cancel</button>
                       <button type="submit" class="btn btn-primary">Create Client</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showMapUpdateModal.value && (
+            <div
+              class="modal show d-block"
+              style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}
+              onClick={() => { showMapUpdateModal.value = false; mapFile.value = null; }}
+            >
+              <div class="modal-dialog" onClick={(e) => e.stopPropagation()}>
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Update / Merge Map Data</h5>
+                    <button type="button" class="btn-close" onClick={() => { showMapUpdateModal.value = false; mapFile.value = null; }}></button>
+                  </div>
+                  <form onSubmit={handleUpdateMap}>
+                    <div class="modal-body">
+                      <p class="text-muted small mb-3">Upload a new KML or GeoJSON file. New areas will be added and merged with existing ones. Duplicate areas will be skipped.</p>
+                      <div class="mb-3">
+                        <label class="form-label">Select File</label>
+                        <input
+                          type="file"
+                          class="form-control"
+                          accept=".kml,.geojson,.json"
+                          onChange={(e) => mapFile.value = e.target.files[0]}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" onClick={() => { showMapUpdateModal.value = false; mapFile.value = null; }}>Cancel</button>
+                      <button type="submit" class="btn btn-primary" disabled={mapUpdating.value}>
+                        {mapUpdating.value ? 'Processing...' : 'Upload & Merge'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showEditModal.value && (
+            <div
+              class="modal show d-block"
+              style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}
+              onClick={() => showEditModal.value = false}
+            >
+              <div class="modal-dialog" onClick={(e) => e.stopPropagation()}>
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">📝 Edit Client Details</h5>
+                    <button type="button" class="btn-close" onClick={() => showEditModal.value = false}></button>
+                  </div>
+                  <form onSubmit={handleUpdateClient}>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <label class="form-label">Organization Name</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          value={editingClient.value.organizationName}
+                          onInput={(e) => editingClient.value.organizationName = e.target.value}
+                          required
+                        />
+                      </div>
+                      
+                      <hr class="my-4" />
+                      <h6 class="fw-bold mb-2">🔐 Reset Password</h6>
+                      <p class="text-muted small mb-3">Leave blank if you don't want to change the password.</p>
+                      
+                      <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input
+                          type="password"
+                          class="form-control"
+                          value={editingClient.value.password}
+                          onInput={(e) => editingClient.value.password = e.target.value}
+                          placeholder="Enter new password"
+                        />
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input
+                          type="password"
+                          class="form-control"
+                          value={editingClient.value.confirmPassword}
+                          onInput={(e) => editingClient.value.confirmPassword = e.target.value}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" onClick={() => showEditModal.value = false}>Cancel</button>
+                      <button type="submit" class="btn btn-primary" disabled={updatingClient.value}>
+                        {updatingClient.value ? 'Saving...' : 'Update Client'}
+                      </button>
                     </div>
                   </form>
                 </div>

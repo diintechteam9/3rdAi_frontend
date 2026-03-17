@@ -633,17 +633,21 @@ export default {
     });
 
     return () => (
-      <div style="display: flex; height: 100%; gap: 20px;">
+      <div style={{ display: 'flex', height: '100%', gap: '20px', padding: '20px', boxSizing: 'border-box', backgroundColor: '#fff' }}>
         {/* Sidebar */}
-        <div style="width: 300px; border-right: 1px solid #ddd; padding-right: 20px; display: flex; flex-direction: column;">
+        <div style={{ width: '300px', borderRight: '1px solid #eee', paddingRight: '20px', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div style="margin-bottom: 20px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
               <h2 style="font-size: 20px; font-weight: 600; color: #111827; margin: 0;">
                 Chat Sessions
               </h2>
-              <div style={`width: 12px; height: 12px; border-radius: 50%; ${isConnected.value ? 'background-color: #10b981;' : 'background-color: #ef4444;'
-                }`} title={isConnected.value ? 'Connected' : 'Disconnected'} />
+              <div style={{ 
+                width: '12px', 
+                height: '12px', 
+                borderRadius: '50%', 
+                backgroundColor: isConnected.value ? '#10b981' : '#ef4444' 
+              }} title={isConnected.value ? 'Connected' : 'Disconnected'} />
             </div>
 
             {/* Status selector */}
@@ -651,7 +655,7 @@ export default {
               <select
                 value={partnerInfo.value.status}
                 onChange={(e) => updateStatus(e.target.value)}
-                style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer; font-size: 14px;"
+                style={{ flex: 1, padding: '12px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px' }}
               >
                 <option value="online">🟢 Online</option>
                 <option value="busy">🟡 Busy</option>
@@ -660,17 +664,28 @@ export default {
             </div>
           </div>
 
-          <div style="display: flex; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+
+          <div style={{ display: 'flex', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
             <button
               onClick={() => activeTab.value = 'conversations'}
-              style={`flex: 1; padding: 10px; border: none; font-size: 14px; cursor: pointer; transition: background-color 0.2s; border-radius: 8px 0 0 8px; border: 1px solid #eee; border-right: none; ${activeTab.value === 'conversations' ? 'background-color: #3498db; color: white; border-color: #3498db;' : 'background-color: white; color: #7f8c8d;'}`}
+              style={{
+                flex: 1, padding: '10px', border: 'none', fontSize: '14px', cursor: 'pointer', transition: 'background-color 0.2s', 
+                borderRadius: '8px 0 0 8px', border: '1px solid #eee', borderRight: 'none', 
+                backgroundColor: activeTab.value === 'conversations' ? '#3498db' : 'white',
+                color: activeTab.value === 'conversations' ? 'white' : '#7f8c8d'
+              }}
             >
               Chats
               {unreadCount.value > 0 && ` (${unreadCount.value})`}
             </button>
             <button
               onClick={() => activeTab.value = 'requests'}
-              style={`flex: 1; padding: 10px; border: none; font-size: 14px; cursor: pointer; transition: background-color 0.2s; border-radius: 0 8px 8px 0; border: 1px solid #eee; ${activeTab.value === 'requests' ? 'background-color: #3498db; color: white; border-color: #3498db;' : 'background-color: white; color: #7f8c8d;'}`}
+              style={{
+                flex: 1, padding: '10px', border: 'none', fontSize: '14px', cursor: 'pointer', transition: 'background-color 0.2s', 
+                borderRadius: '0 8px 8px 0', border: '1px solid #eee',
+                backgroundColor: activeTab.value === 'requests' ? '#3498db' : 'white',
+                color: activeTab.value === 'requests' ? 'white' : '#7f8c8d'
+              }}
             >
               Requests
               {pendingRequests.value.length > 0 && ` (${pendingRequests.value.length})`}
@@ -700,7 +715,7 @@ export default {
                   >
                     <div style={{ fontWeight: 'bold', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        <div style={{ flexShrink: 0, width: 24, height: 24, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 10, overflow: 'hidden' }}>
+                        <div style={{ flexShrink: 0, width: '24px', height: '24px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: '10px', overflow: 'hidden' }}>
                           {conv.otherUser?.profileImage ? (
                             <img src={conv.otherUser.profileImage} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
@@ -772,7 +787,7 @@ export default {
               {/* Chat Header - Full user details */}
               <div style={{ padding: '16px 24px', background: 'white', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
-                  <div style={{ flexShrink: 0, width: 48, height: 48, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 18, overflow: 'hidden' }}>
+                  <div style={{ flexShrink: 0, width: '48px', height: '48px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: '18px', overflow: 'hidden' }}>
                     {selectedConversation.value.otherUser?.profileImage ? (
                       <img src={selectedConversation.value.otherUser.profileImage} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -1202,7 +1217,7 @@ export default {
           to { transform: rotate(360deg); }
         }
       `}</style>
-      </div >
+      </div>
     );
   }
 };

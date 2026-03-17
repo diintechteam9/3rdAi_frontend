@@ -690,7 +690,7 @@ export default {
                                     id: 'open',
                                     label: 'Open',
                                     val: (this.statusCounts['Under Review'] || 0) + (this.statusCounts['Verified'] || 0) + (this.statusCounts['Action Taken'] || 0),
-                                    icon: '🕒'
+                                    icon: '🕒',
                                 },
                                 {
                                     id: 'closed',
@@ -709,27 +709,32 @@ export default {
                                         }}
                                         style={{
                                             background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)',
-                                            borderRadius: '12px',
-                                            padding: '0.75rem 0.5rem',
-                                            textAlign: 'center',
+                                            borderRadius: '10px',
+                                            padding: '0.5rem 0.75rem',
+                                            textAlign: 'left',
                                             flex: 1,
                                             cursor: 'pointer',
                                             border: `1px solid ${isActive ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
                                             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                             display: 'flex',
-                                            flexDirection: 'column',
+                                            flexDirection: 'row',
                                             alignItems: 'center',
-                                            gap: '4px',
+                                            justifyContent: 'center',
+                                            gap: '10px',
                                             boxShadow: isActive ? '0 4px 15px rgba(0,0,0,0.2)' : 'none',
-                                            transform: isActive ? 'translateY(-1px)' : 'none'
+                                            transform: isActive ? 'translateY(-1px)' : 'none',
+                                            position: 'relative',
+                                            minWidth: '100px'
                                         }}
                                     >
-                                        <div style={{ fontSize: '1.25rem', marginBottom: '2px', filter: isActive ? 'none' : 'grayscale(0.5) opacity(0.7)' }}>{s.icon}</div>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white', lineHeight: '1' }}>{s.val}</div>
-                                        <div style={{ fontSize: '0.65rem', color: isActive ? '#fff' : '#a5b4fc', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
+                                        <div style={{ fontSize: '1.1rem', filter: isActive ? 'none' : 'grayscale(0.5) opacity(0.7)', flexShrink: 0 }}>{s.icon}</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white', lineHeight: '1' }}>{s.val}</div>
+                                            <div style={{ fontSize: '0.62rem', color: isActive ? '#fff' : '#a5b4fc', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
+                                        </div>
 
                                         {isActive && (
-                                            <div style={{ position: 'absolute', bottom: '0', left: '20%', right: '20%', height: '2px', background: 'white', borderRadius: '2px 2px 0 0' }} />
+                                            <div style={{ position: 'absolute', bottom: '0', left: '15%', right: '15%', height: '2px', background: 'white', borderRadius: '2px 2px 0 0' }} />
                                         )}
                                     </div>
                                 );

@@ -174,6 +174,19 @@ export default {
                   <p style={{ fontSize: '0.75rem', margin: '0.25rem 0 0 0', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
                     User Portal
                   </p>
+                  {user.value?.clientId?.organizationName && (
+                    <p style={{ 
+                      fontSize: '0.7rem', 
+                      margin: '0.25rem 0 0 0', 
+                      color: '#6366f1', 
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {user.value.clientId.organizationName}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (

@@ -116,7 +116,7 @@ export default {
     onMounted(fetchUsers);
 
     return () => (
-      <div style={{ padding: '24px', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ padding: '24px 24px 80px', fontFamily: "'Inter', sans-serif" }}>
         {/* Toast */}
         {toast.value.show && (
           <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, padding: '12px 20px', borderRadius: '10px', background: toast.value.type === 'success' ? '#10b981' : '#ef4444', color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontWeight: '600' }}>
@@ -127,7 +127,7 @@ export default {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 4px' }}>Users</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 4px' }}>Citizens</h1>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>Manage your citizen accounts and approvals</p>
           </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -137,7 +137,7 @@ export default {
               </span>
             )}
             <button onClick={() => showCreateModal.value = true} style={{ background: '#6366f1', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 4px rgba(99,102,241,0.2)' }}>
-              + Add User
+              + Add Citizen
             </button>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default {
           {[
             { id: 'pending', label: '⏳ Pending' },
             { id: 'approved', label: '✅ Approved' },
-            { id: 'all', label: '👥 All Users' }
+            { id: 'all', label: '👥 All Citizens' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -170,8 +170,8 @@ export default {
         ) : displayUsers.value.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>👥</div>
-            <h3 style={{ margin: '0 0 8px', color: '#1e293b' }}>No Users Found</h3>
-            <p style={{ color: '#64748b', margin: 0 }}>There are no users matching your current filter.</p>
+            <h3 style={{ margin: '0 0 8px', color: '#1e293b' }}>No Citizens Found</h3>
+            <p style={{ color: '#64748b', margin: 0 }}>There are no citizens matching your current filter.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -225,7 +225,7 @@ export default {
         {detailsModal.value.show && detailsModal.value.user && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => detailsModal.value.show = false}>
             <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '500px', padding: '24px', position: 'relative' }} onClick={e => e.stopPropagation()}>
-              <h2 style={{ margin: '0 0 20px', fontSize: '20px', color: '#1e293b' }}>User Details</h2>
+              <h2 style={{ margin: '0 0 20px', fontSize: '20px', color: '#1e293b' }}>Citizen Details</h2>
               <div style={{ display: 'grid', gap: '16px' }}>
                 {[
                   { label: 'Name', value: detailsModal.value.user.profile?.name },
@@ -250,7 +250,7 @@ export default {
         {showCreateModal.value && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => showCreateModal.value = false}>
             <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '600px', padding: '24px' }} onClick={e => e.stopPropagation()}>
-              <h2 style={{ margin: '0 0 20px', fontSize: '20px', color: '#1e293b' }}>Create New User</h2>
+              <h2 style={{ margin: '0 0 20px', fontSize: '20px', color: '#1e293b' }}>Create New Citizen</h2>
               <form onSubmit={handleCreate}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
@@ -272,7 +272,7 @@ export default {
                 </div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                   <button type="button" onClick={() => showCreateModal.value = false} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#6366f1', color: 'white', fontWeight: '600', cursor: 'pointer' }}>Create User</button>
+                  <button type="submit" style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#6366f1', color: 'white', fontWeight: '600', cursor: 'pointer' }}>Create Citizen</button>
                 </div>
               </form>
             </div>

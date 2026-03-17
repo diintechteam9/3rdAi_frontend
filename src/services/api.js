@@ -866,6 +866,13 @@ class ApiService {
     });
   }
 
+  async updateClientMap(id, formData) {
+    return this.request(`/admin/clients/${id}/map-upload`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async getAdminUsers(queryString = '') {
     return this.request(`/admin/users${queryString}`);
   }
@@ -1209,6 +1216,7 @@ const api = {
   createClientUser: apiService.createClientUser.bind(apiService),
   updateClientUser: apiService.updateClientUser.bind(apiService),
   deleteClientUser: apiService.deleteClientUser.bind(apiService),
+  updateClientMap: apiService.updateClientMap.bind(apiService),
 
   submitConversationFeedback: apiService.submitConversationFeedback.bind(apiService),
   getClientDashboard: apiService.getClientDashboard.bind(apiService),

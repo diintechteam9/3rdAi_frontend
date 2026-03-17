@@ -74,8 +74,7 @@ export default {
       router.push(route);
     };
 
-    const clientName = user.value?.clientId?.businessName || 'Partner';
-    const clientIdDisplay = user.value?.clientId?.clientId || '';
+    const clientName = user.value?.clientId?.organizationName || user.value?.clientId?.businessName || 'Partner';
 
     return () => (
       <div class="mobile-dashboard">
@@ -83,7 +82,6 @@ export default {
         <div class="dashboard-header">
 
           <p>Welcome to <strong>{clientName}</strong> AI Services</p>
-          {clientIdDisplay && <p class="client-id">Client ID: {clientIdDisplay}</p>}
           <p class="subtitle">Access your AI-powered tools and features</p>
         </div>
 

@@ -399,6 +399,11 @@ const routes = [
         name: 'ClientHealth',
         component: () => import('../views/client/Health.jsx')
       },
+      {
+        path: 'settings',
+        name: 'ClientSettings',
+        component: () => import('../views/client/Settings.jsx')
+      },
 
       {
         path: 'services',
@@ -408,7 +413,7 @@ const routes = [
       {
         path: 'all-reports',
         name: 'ClientAllReports',
-        component: () => import('../views/client/AllReports.jsx')
+        component: () => import('../views/client/Citizen.jsx')
       },
       {
         path: 'cctv-surveillance',
