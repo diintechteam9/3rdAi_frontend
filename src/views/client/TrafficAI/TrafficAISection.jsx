@@ -26,7 +26,7 @@ const STYLES = {
     container: { padding: '24px', backgroundColor: '#0a0f1a', minHeight: '100vh', color: '#e2e8f0', fontFamily: 'inherit' },
     headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
     pageTitle: { fontSize: '24px', fontWeight: 'bold', color: '#e2e8f0', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' },
-    addSourceBtn: { backgroundColor: '#00d4ff', color: '#0a0f1a', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 212, 255, 0.3)', transition: 'all 0.2s' },
+    addSourceBtn: { backgroundColor: '#ffffff', color: '#0a0f1a', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 255, 255, 0.1)', transition: 'all 0.2s' },
     filterContainer: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' },
     filterTabs: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
     filterTab: (active) => ({ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${active ? '#00d4ff44' : '#1e2d3d'}`, backgroundColor: active ? '#00d4ff15' : '#0f1520', color: active ? '#00d4ff' : '#64748b', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }),
@@ -92,7 +92,7 @@ const RAGChatbot = () => {
 
     return (
         <>
-            <button onClick={() => setOpen(!open)} style={{ position: 'fixed', bottom: '28px', right: '28px', width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#00d4ff', border: 'none', cursor: 'pointer', fontSize: '24px', zIndex: 10000, boxShadow: '0 4px 20px rgba(0,0,255,0.3)' }}>
+            <button onClick={() => setOpen(!open)} style={{ position: 'fixed', bottom: '28px', right: '28px', width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#ffffff', border: 'none', cursor: 'pointer', fontSize: '24px', zIndex: 10000, boxShadow: '0 4px 20px rgba(255,255,255,0.1)' }}>
                 {open ? '✕' : '💬'}
             </button>
             {open && (
