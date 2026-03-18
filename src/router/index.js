@@ -408,7 +408,22 @@ const routes = [
       {
         path: 'services',
         name: 'ClientServices',
-        component: () => import('../views/client/Services.jsx')
+        component: () => import('../views/client/Device.jsx')
+      },
+      {
+        path: 'traffic-ai/project/:sourceId',
+        name: 'TrafficAIProjectDetail',
+        component: () => import('../views/client/TrafficAI/ProjectDetail.jsx')
+      },
+      {
+        path: 'traffic-ai/camera/:sourceId',
+        name: 'TrafficAICameraAnalysis',
+        component: () => import('../views/client/TrafficAI/CameraAnalysis.jsx')
+      },
+      {
+        path: 'traffic-ai/video/:sourceId',
+        name: 'TrafficAIVideoAnalysis',
+        component: () => import('../views/client/TrafficAI/VideoAnalysis.jsx')
       },
       {
         path: 'all-reports',
